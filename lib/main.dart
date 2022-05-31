@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
@@ -20,8 +21,24 @@ final isWebMobile = kIsWeb &&
         defaultTargetPlatform == TargetPlatform.android);
 
 class TimerProvider extends ChangeNotifier {
+  
+}
+
+class ReidleProvider extends ChangeNotifier {
   DateTime? _startTime;
   DateTime? _endTime;
+
+  final usernameController = () {
+    final controller = TextEditingController();
+    FirebaseAuth.instance
+        .userChanges()
+        .where((event) => event?.uid.isNotEmpty ?? false)
+        .first
+        .then((value) => controller.text = value?.displayName ?? '');
+    return controller;
+  }();
+
+  final usernameFocus = FocusNode();
 
   void onPressed(String k, BuildContext context) {
     if (k == '↵') {
@@ -41,6 +58,7 @@ class TimerProvider extends ChangeNotifier {
   }
 
   Timer? _timer;
+  var penalty = const Duration(seconds: 0);
 
   List<String> guesses = [];
 
@@ -48,30 +66,39 @@ class TimerProvider extends ChangeNotifier {
 
   final Dictionary dictionary;
 
-  final Stream<Submissions> submissions = db.submissions;
   get todaysWord => dictionary.todaysWord;
   get todaysAnswer => dictionary.todaysAnswer;
 
-  TimerProvider(this.dictionary);
+  ReidleProvider(this.dictionary) {
+    usernameFocus.addListener(() {
+      if (!usernameFocus.hasFocus &&
+          (FirebaseAuth.instance.currentUser?.displayName ?? '') != usernameController.text) {
+        usernameSubmit();
+      }
+    });
+  }
 
   bool get isRunning => _timer != null;
 
   final focus = FocusNode();
   final controller = TextEditingController();
 
-  Duration get duration => (_endTime ?? DateTime.now()).difference(_startTime ?? DateTime.now());
+  Duration get duration =>
+      (_endTime ?? DateTime.now()).difference(_startTime ?? DateTime.now()) + penalty;
 
   void toggle() {
     (isRunning ? stop : start)();
+    focus.requestFocus();
   }
 
   void start() {
     _startTime = DateTime.now();
     _endTime = null;
+    penalty = const Duration(seconds: 0);
     guesses.clear();
     guesses.add(todaysWord);
     notifyListeners();
-    _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
+    _timer = Timer.periodic(const Duration(seconds: 1), (reidle) {
       notifyListeners();
     });
   }
@@ -91,21 +118,22 @@ class TimerProvider extends ChangeNotifier {
   }
 
   onSubmitted(BuildContext context) {
+    focus.requestFocus();
     final s = controller.text;
-    String? getErrorText() {
-      if (FirebaseAuth.instance.currentUser?.displayName?.isEmpty ?? true) return "Must set name";
-      if (controller.text.isEmpty) return null;
-      if (controller.text.length != 5) return 'Must be 5 letters';
-      if (!dictionary.isValid(controller.text)) return 'Not a word';
-      return null;
+    void snack(String s, [int? penalty]) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(s)));
+      if (penalty != null) {
+        this.penalty += Duration(seconds: penalty);
+        notifyListeners();
+      }
     }
 
-    final errorText = getErrorText();
-    if ((errorText?.length ?? 0) > 0) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(errorText!)));
-      focus.requestFocus();
-      return;
+    if (FirebaseAuth.instance.currentUser?.displayName?.isEmpty ?? true) {
+      return snack("Must set name");
     }
+    if (controller.text.isEmpty) return null;
+    if (controller.text.length != 5) return snack('Must be 5 letters');
+    if (!dictionary.isValid(controller.text)) return snack('Not a word', 5);
 
     FirebaseAnalytics.instance.logEvent(name: "guess", parameters: {'guess': s});
     guesses.add(s);
@@ -113,22 +141,33 @@ class TimerProvider extends ChangeNotifier {
     final checker = checkWordle(todaysAnswer, score);
     if (checker.finished) {
       stop();
-      final response =
-          db.add(FirebaseAuth.instance.currentUser!, duration, score.paste, checker.error);
-      created = response.key;
-      submissionDialog(context, response.value);
+      final submission = Submission(
+        name: FirebaseAuth.instance.currentUser?.name ?? '',
+        time: duration,
+        submissionTime: DateTime.now().toUtc(),
+        paste: score.paste,
+        error: checker.error,
+        penalty: penalty,
+      );
+      created = db.submissions.add(submission);
+      submissionSnackbar(context, submission);
       notifyListeners();
       return;
     }
-    if ((checker.error?.length ?? 0) > 0) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(checker.error!)));
+    if (checker.error?.isNotEmpty ?? false) {
       guesses.removeLast();
-      focus.requestFocus();
-      return;
+      return snack(checker.error ?? 'error', 10);
     }
     notifyListeners();
     controller.clear();
     focus.requestFocus();
+  }
+
+  void usernameSubmit() {
+    FirebaseAuth.instance.currentUser?.updateDisplayName(usernameController.text);
+    FirebaseAnalytics.instance.logEvent(name: "set_username", parameters: {
+      'name': usernameController.text,
+    });
   }
 }
 
@@ -139,15 +178,24 @@ void main() async {
   await FirebaseAuth.instance.signInAnonymously();
   WidgetsFlutterBinding.ensureInitialized();
   final dict = await dictionary;
-  runApp(ChangeNotifierProvider.value(
-      value: TimerProvider(dict),
-      builder: (_, __) => Consumer<TimerProvider>(builder: (_, t, __) => MyApp(t))));
+  runApp(ChangeNotifierProvider.value(value: ReidleProvider(dict), child: const MyApp()));
+}
+
+typedef TimerBuilder = Widget? Function(ReidleProvider reidle, BuildContext context);
+
+class TimerWidget extends StatelessWidget {
+  final TimerBuilder builder;
+
+  const TimerWidget(this.builder, {Key? key}) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return builder(Provider.of<ReidleProvider>(context), context) ?? Container();
+  }
 }
 
 class MyApp extends StatelessWidget {
-  final TimerProvider timer;
-
-  const MyApp(this.timer, {Key? key}) : super(key: key);
+  const MyApp({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -167,57 +215,79 @@ class MyApp extends StatelessWidget {
                   ? const Text("loading")
                   : Column(
                       children: [
-                        Card(
-                          margin: const EdgeInsets.all(8),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              if (timer.created != null)
-                                ElevatedButton.icon(
-                                    onPressed: timer.undo,
-                                    icon: const Icon(Icons.undo),
-                                    label: const Text("Undo")),
-                              if (timer.guesses.isEmpty)
-                                ElevatedButton.icon(
-                                    label: const Text("Play"),
-                                    onPressed: timer.toggle,
-                                    icon: const Icon(Icons.play_arrow)),
-                              if (timer.guesses.isNotEmpty)
-                                Card(
-                                    margin: const EdgeInsets.all(8),
-                                    child: Padding(
+                        ConstrainedBox(
+                          constraints: const BoxConstraints(maxWidth: 300),
+                          child: Card(
+                            margin: const EdgeInsets.all(8),
+                            child:
+                                Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+                              TimerWidget((reidle, context) => (reidle.created == null)
+                                  ? null
+                                  : Padding(
                                       padding: const EdgeInsets.all(8.0),
-                                      child: Text(timer.duration.stopwatchString,
-                                          style: GoogleFonts.robotoMono(fontSize: 20)),
+                                      child: ElevatedButton.icon(
+                                          onPressed: reidle.undo,
+                                          icon: const Icon(Icons.undo),
+                                          label: const Text("Undo")),
                                     )),
-                              ConstrainedBox(
-                                constraints: const BoxConstraints(maxWidth: 200),
-                                child: TextFormField(
-                                    autofocus: (userSnapshot.data?.displayName?.length ?? 0) == 0,
-                                    initialValue: userSnapshot.data?.displayName ?? '',
-                                    decoration: const InputDecoration(labelText: "My Name"),
-                                    maxLength: 10,
-                                    maxLengthEnforcement: MaxLengthEnforcement.enforced,
-                                    onFieldSubmitted: (s) async {
-                                      userSnapshot.data?.updateDisplayName(s);
-                                      FirebaseAnalytics.instance
-                                          .logEvent(name: "set_username", parameters: {
-                                        'name': s,
-                                      });
-                                    }),
-                              ),
-                            ]
-                                .map((x) => Padding(
+                              TimerWidget((reidle, context) => reidle.guesses.isNotEmpty
+                                  ? null
+                                  : Padding(
                                       padding: const EdgeInsets.all(8.0),
-                                      child: x,
-                                    ))
-                                .toList(),
+                                      child: ElevatedButton.icon(
+                                          label: const Text("Play"),
+                                          onPressed: reidle.toggle,
+                                          icon: const Icon(Icons.play_arrow)),
+                                    )),
+                              TimerWidget(
+                                (reidle, context) => (reidle.guesses.isEmpty)
+                                    ? null
+                                    : Padding(
+                                        padding: const EdgeInsets.all(8.0),
+                                        child: Column(
+                                          children: [
+                                            Card(
+                                                margin: const EdgeInsets.all(8),
+                                                child: Padding(
+                                                  padding: const EdgeInsets.all(8.0),
+                                                  child: Text(reidle.duration.stopwatchString,
+                                                      style: GoogleFonts.robotoMono(fontSize: 20)),
+                                                )),
+                                            if (reidle.penalty > const Duration(seconds: 0))
+                                              Card(
+                                                  margin: const EdgeInsets.all(8),
+                                                  child: Padding(
+                                                    padding: const EdgeInsets.all(8.0),
+                                                    child: Text(reidle.penalty.stopwatchString,
+                                                        style: GoogleFonts.robotoMono(
+                                                            fontSize: 20, color: Colors.red)),
+                                                  )),
+                                          ],
+                                        ),
+                                      ),
+                              ),
+                              Expanded(
+                                child: Padding(
+                                  padding: const EdgeInsets.all(8.0),
+                                  child: TimerWidget(
+                                    (reidle, context) => TextFormField(
+                                      focusNode: reidle.usernameFocus,
+                                      controller: reidle.usernameController,
+                                      autofocus: (userSnapshot.data?.displayName?.length ?? 0) == 0,
+                                      decoration: const InputDecoration(labelText: "My Name"),
+                                      maxLength: 10,
+                                      maxLengthEnforcement: MaxLengthEnforcement.enforced,
+                                      onFieldSubmitted: (_) => reidle.usernameSubmit(),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ]),
                           ),
                         ),
-                        WordleGameWidget(timer),
+                        TimerWidget((reidle, context) => WordleGameWidget(reidle)),
                         StreamBuilder<Submissions>(
-                          stream: timer.submissions,
+                          stream: db.submissionsStream,
                           builder: (_, s) => Column(
                             children: [
                               ConstrainedBox(
@@ -225,10 +295,12 @@ class MyApp extends StatelessWidget {
                                 child: Card(
                                   child: SingleChildScrollView(
                                     child: DataTable(
+                                      columnSpacing: 20,
                                       columns: [
                                         'name',
                                         'date',
                                         'time',
+                                        'pen',
                                         'paste',
                                       ].map((s) => DataColumn(label: Text(s))).toList(),
                                       rows: s.data?.submissions
@@ -238,21 +310,26 @@ class MyApp extends StatelessWidget {
                                                       .difference(e.submission.submissionTime) <
                                                   const Duration(days: 10))
                                               .map((e) => DataRow(
-                                                    onLongPress: e.submission.error?.isNotEmpty ??
-                                                            false
-                                                        ? () =>
-                                                            submissionDialog(context, e.submission)
-                                                        : null,
+                                                    onLongPress:
+                                                        e.submission.error?.isNotEmpty ?? false
+                                                            ? () => submissionSnackbar(
+                                                                context, e.submission)
+                                                            : null,
                                                     color: MaterialStateProperty.all(e.isWinner
                                                         ? Colors.green.shade100
                                                         : !e.submission.won
                                                             ? Colors.red.shade100
-                                                            : e.submission.name ==
+                                                            : e.submission.name
+                                                                        .toLowerCase()
+                                                                        .trim() ==
                                                                     userSnapshot.data?.name
+                                                                        .toLowerCase()
+                                                                        .trim()
                                                                 ? Colors.yellow.shade100
                                                                 : Colors.white),
                                                     cells: [
-                                                      DataCell(Text(e.submission.name)),
+                                                      DataCell(Text(e.submission.name.substring(
+                                                          0, min(e.submission.name.length, 7)))),
                                                       DataCell(Text(
                                                           e.submission.submissionTime.dateString,
                                                           style: TextStyle(
@@ -267,6 +344,14 @@ class MyApp extends StatelessWidget {
                                                                   : FontWeight.normal))),
                                                       DataCell(
                                                           Text(e.submission.time.stopwatchString)),
+                                                      DataCell(() {
+                                                        final seconds =
+                                                            e.submission.penalty?.inSeconds ?? 0;
+                                                        if (seconds < 1) {
+                                                          return const Text("");
+                                                        }
+                                                        return Text("$seconds");
+                                                      }()),
                                                       DataCell(Text(
                                                         e.submission.paste ?? "",
                                                         style: const TextStyle(fontSize: 6),
@@ -315,38 +400,38 @@ class MyApp extends StatelessWidget {
 }
 
 class WordleGameWidget extends StatelessWidget {
-  final TimerProvider timer;
-  const WordleGameWidget(this.timer, {Key? key}) : super(key: key);
+  final ReidleProvider reidle;
+  const WordleGameWidget(this.reidle, {Key? key}) : super(key: key);
 
-  List<String> get guesses => timer.guesses;
+  List<String> get guesses => reidle.guesses;
 
   @override
   Widget build(BuildContext context) {
-    return timer.guesses.isEmpty
+    return reidle.guesses.isEmpty
         ? Container()
         : Column(
             children: [
               Padding(
                 padding: const EdgeInsets.all(8.0),
-                child: WordleWidget(timer.todaysAnswer, guesses),
+                child: WordleWidget(reidle.todaysAnswer, guesses),
               ),
-              if (timer.isRunning)
+              if (reidle.isRunning)
                 ConstrainedBox(
                   constraints: const BoxConstraints(maxWidth: 150),
                   child: TextField(
                       keyboardType: isWebMobile ? TextInputType.none : null,
                       maxLines: 1,
                       autofocus: true,
-                      focusNode: timer.focus,
-                      controller: timer.controller,
+                      focusNode: reidle.focus,
+                      controller: reidle.controller,
                       style: GoogleFonts.robotoMono(fontSize: 48),
-                      onSubmitted: (_) => timer.onSubmitted(context)),
+                      onSubmitted: (_) => reidle.onSubmitted(context)),
                 ),
-              if (timer.isRunning)
+              if (reidle.isRunning)
                 Padding(
                   padding: const EdgeInsets.symmetric(vertical: 8.0),
-                  child: WordleKeyboardWidget(timer.todaysAnswer, guesses,
-                      onPressed: (s) => timer.onPressed(s, context)),
+                  child: WordleKeyboardWidget(reidle.todaysAnswer, guesses,
+                      onPressed: (s) => reidle.onPressed(s, context)),
                 )
             ],
           );
@@ -357,15 +442,6 @@ extension D on DateTime {
   String get dateString => '$month/$day';
 }
 
-Future<dynamic> submissionDialog(BuildContext context, Submission submission) {
-  return showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-            title: Text("${submission.name}'s submission"),
-            content: Text(submission.error ?? 'Win'),
-            actions: [
-              MaterialButton(
-                  onPressed: () => Navigator.of(context).pop(), child: const Text("Close"))
-            ],
-          ));
+void submissionSnackbar(BuildContext context, Submission submission) {
+  ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(submission.error ?? 'Win')));
 }

@@ -200,7 +200,7 @@ Checked checkWordle(String word, ClassWords guesses) {
     for (int iLetter = 0; iLetter < guess.length; iLetter++) {
       final letter = guess[iLetter];
       if (ons.contains(iLetter) && letter.cls != Class.right) {
-        return Checked(false, 'Correct "${letter.letter}" was dropped');
+        return Checked(false, 'Correct "${word[iLetter]}" was dropped (position ${iLetter + 1})');
       }
       if (letter.cls == Class.right) {
         ons.add(iLetter);

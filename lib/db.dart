@@ -7,6 +7,7 @@ class Submission {
   final DateTime submissionTime;
   final String? error;
   final String? paste;
+  final Duration? penalty;
 
   bool get won {
     return (error?.length ?? 0) == 0 && (paste?.trimRight().endsWith("🟩🟩🟩🟩🟩") ?? false);
@@ -18,11 +19,13 @@ class Submission {
     required this.submissionTime,
     this.error,
     this.paste,
+    this.penalty,
   });
 
   factory Submission.fromFirestore(Map<String, dynamic> json) => Submission(
         name: json['name'] as String,
         time: Duration(microseconds: json['time'] as int),
+        penalty: Duration(microseconds: (json['penalty'] ?? 0) as int),
         submissionTime: DateTime.parse(json['submissionTime'] as String),
         error: json['error'] as String?,
         paste: json['paste'] as String?,
@@ -34,6 +37,7 @@ class Submission {
         'submissionTime': submissionTime.toIso8601String(),
         'error': error,
         'paste': paste,
+        'penalty': penalty?.inMicroseconds ?? 0,
       };
 }
 
@@ -48,19 +52,14 @@ extension UserName on User {
 }
 
 class _Db {
-  FirebaseFirestore get firestore => FirebaseFirestore.instance;
-  MapEntry<Future<DocumentReference<Submission>>, Submission> add(
-      User user, Duration time, String paste, String? error) {
-    final submission = Submission(
-        name: user.name,
-        time: time,
-        submissionTime: DateTime.now().toUtc(),
-        paste: paste,
-        error: error);
-    return MapEntry(collection.add(submission), submission);
-  }
+  static final firestore = FirebaseFirestore.instance;
+  static final collection = firestore.collection('submissions').withConverter<Submission>(
+      fromFirestore: (x, _) => Submission.fromFirestore(x.data() ?? {}),
+      toFirestore: (x, _) => x.toFirestore);
 
-  Stream<Submissions> get submissions => collection
+  CollectionReference<Submission> get submissions => collection;
+
+  final submissionsStream = collection
       .orderBy('submissionTime', descending: true)
       .where('submissionTime',
           isGreaterThan:
@@ -76,11 +75,6 @@ class _Db {
                           x.data().submissionTime.dateHash == y.data().submissionTime.dateHash)
                       .every((element) => element.data().time >= y.data().time)))
           .toList()));
-
-  CollectionReference<Submission> get collection =>
-      firestore.collection('submissions').withConverter<Submission>(
-          fromFirestore: (x, _) => Submission.fromFirestore(x.data() ?? {}),
-          toFirestore: (x, _) => x.toFirestore);
 }
 
 class Submissions {
