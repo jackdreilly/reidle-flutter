@@ -152,7 +152,7 @@ class WordleKeyboardWidget extends StatelessWidget {
       }
     }
     return Column(
-        children: 'qwertyuiop,asdfghjkl,␡zxcvbnm↵'
+        children: 'qwertyuiop,asdfghjkl,↵zxcvbnm␡'
             .split(',')
             .map((e) => ConstrainedBox(
                   constraints: const BoxConstraints(maxWidth: 500),
