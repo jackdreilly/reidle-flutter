@@ -21,12 +21,14 @@ final isWebMobile = kIsWeb &&
         defaultTargetPlatform == TargetPlatform.android);
 
 class TimerProvider extends ChangeNotifier {
-  
+  Timer? timer;
+  var penalty = const Duration(seconds: 0);
 }
 
 class ReidleProvider extends ChangeNotifier {
   DateTime? _startTime;
   DateTime? _endTime;
+  final TimerProvider timerProvider;
 
   final usernameController = () {
     final controller = TextEditingController();
@@ -57,9 +59,6 @@ class ReidleProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  Timer? _timer;
-  var penalty = const Duration(seconds: 0);
-
   List<String> guesses = [];
 
   Future<DocumentReference<Submission>>? created;
@@ -69,7 +68,7 @@ class ReidleProvider extends ChangeNotifier {
   get todaysWord => dictionary.todaysWord;
   get todaysAnswer => dictionary.todaysAnswer;
 
-  ReidleProvider(this.dictionary) {
+  ReidleProvider(this.dictionary, this.timerProvider) {
     usernameFocus.addListener(() {
       if (!usernameFocus.hasFocus &&
           (FirebaseAuth.instance.currentUser?.displayName ?? '') != usernameController.text) {
@@ -78,13 +77,13 @@ class ReidleProvider extends ChangeNotifier {
     });
   }
 
-  bool get isRunning => _timer != null;
+  bool get isRunning => timerProvider.timer != null;
 
   final focus = FocusNode();
   final controller = TextEditingController();
 
   Duration get duration =>
-      (_endTime ?? DateTime.now()).difference(_startTime ?? DateTime.now()) + penalty;
+      (_endTime ?? DateTime.now()).difference(_startTime ?? DateTime.now()) + timerProvider.penalty;
 
   void toggle() {
     (isRunning ? stop : start)();
@@ -94,19 +93,19 @@ class ReidleProvider extends ChangeNotifier {
   void start() {
     _startTime = DateTime.now();
     _endTime = null;
-    penalty = const Duration(seconds: 0);
+    timerProvider.penalty = const Duration(seconds: 0);
     guesses.clear();
     guesses.add(todaysWord);
     notifyListeners();
-    _timer = Timer.periodic(const Duration(seconds: 1), (reidle) {
-      notifyListeners();
+    timerProvider.timer = Timer.periodic(const Duration(seconds: 1), (reidle) {
+      timerProvider.notifyListeners();
     });
   }
 
   void stop() {
     _endTime = DateTime.now();
-    _timer?.cancel();
-    _timer = null;
+    timerProvider.timer?.cancel();
+    timerProvider.timer = null;
     notifyListeners();
   }
 
@@ -123,7 +122,7 @@ class ReidleProvider extends ChangeNotifier {
     void snack(String s, [int? penalty]) {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(s)));
       if (penalty != null) {
-        this.penalty += Duration(seconds: penalty);
+        timerProvider.penalty += Duration(seconds: penalty);
         notifyListeners();
       }
     }
@@ -147,7 +146,7 @@ class ReidleProvider extends ChangeNotifier {
         submissionTime: DateTime.now().toUtc(),
         paste: score.paste,
         error: checker.error,
-        penalty: penalty,
+        penalty: timerProvider.penalty,
       );
       created = db.submissions.add(submission);
       submissionSnackbar(context, submission);
@@ -178,7 +177,11 @@ void main() async {
   await FirebaseAuth.instance.signInAnonymously();
   WidgetsFlutterBinding.ensureInitialized();
   final dict = await dictionary;
-  runApp(ChangeNotifierProvider.value(value: ReidleProvider(dict), child: const MyApp()));
+  final timerProvider = TimerProvider();
+  runApp(MultiProvider(providers: [
+    ChangeNotifierProvider.value(value: timerProvider),
+    ChangeNotifierProvider.value(value: ReidleProvider(dict, timerProvider))
+  ], child: const MyApp()));
 }
 
 typedef TimerBuilder = Widget? Function(ReidleProvider reidle, BuildContext context);
@@ -242,29 +245,35 @@ class MyApp extends StatelessWidget {
                               TimerWidget(
                                 (reidle, context) => (reidle.guesses.isEmpty)
                                     ? null
-                                    : Padding(
-                                        padding: const EdgeInsets.all(8.0),
-                                        child: Column(
-                                          children: [
-                                            Card(
-                                                margin: const EdgeInsets.all(8),
-                                                child: Padding(
-                                                  padding: const EdgeInsets.all(8.0),
-                                                  child: Text(reidle.duration.stopwatchString,
-                                                      style: GoogleFonts.robotoMono(fontSize: 20)),
-                                                )),
-                                            if (reidle.penalty > const Duration(seconds: 0))
+                                    : Consumer<TimerProvider>(builder: (context, _, __) {
+                                        return Padding(
+                                          padding: const EdgeInsets.all(8.0),
+                                          child: Column(
+                                            children: [
                                               Card(
                                                   margin: const EdgeInsets.all(8),
                                                   child: Padding(
                                                     padding: const EdgeInsets.all(8.0),
-                                                    child: Text(reidle.penalty.stopwatchString,
-                                                        style: GoogleFonts.robotoMono(
-                                                            fontSize: 20, color: Colors.red)),
+                                                    child: Text(reidle.duration.stopwatchString,
+                                                        style:
+                                                            GoogleFonts.robotoMono(fontSize: 20)),
                                                   )),
-                                          ],
-                                        ),
-                                      ),
+                                              if (reidle.timerProvider.penalty >
+                                                  const Duration(seconds: 0))
+                                                Card(
+                                                    margin: const EdgeInsets.all(8),
+                                                    child: Padding(
+                                                      padding: const EdgeInsets.all(8.0),
+                                                      child: Text(
+                                                          reidle.timerProvider.penalty
+                                                              .stopwatchString,
+                                                          style: GoogleFonts.robotoMono(
+                                                              fontSize: 20, color: Colors.red)),
+                                                    )),
+                                            ],
+                                          ),
+                                        );
+                                      }),
                               ),
                               Expanded(
                                 child: Padding(
