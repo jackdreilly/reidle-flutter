@@ -46,3 +46,4 @@ app.*.map.json
 /android/app/release
 reidle-d39c2-firebase-adminsdk-g9dyy-dfeec38c43.json
 *.cache
+lib/secrets.dart
