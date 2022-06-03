@@ -1,5 +1,3 @@
-import 'package:reidle/secrets.dart';
-import 'package:sendgrid_mailer/sendgrid_mailer.dart';
 import 'dart:async';
 import 'dart:math';
 
@@ -151,28 +149,6 @@ class ReidleProvider extends ChangeNotifier {
         penalty: timerProvider.penalty,
       );
       created = db.submissions.add(submission);
-
-      Mailer(sendgridApiKey).send(Email(
-          [
-            const Personalization([Address('reidle@googlegroups.com')])
-          ],
-          const Address('jackdreilly@gmail.com'),
-          'Update',
-          content: [
-            Content(
-                'text/plain',
-                {
-                  'name': submission.name,
-                  'date': submission.submissionTime.toIso8601String(),
-                  'time': submission.time.stopwatchString,
-                  'penalty': submission.penalty?.inSeconds,
-                  'error': submission.error
-                }
-                    .entries
-                    .where((x) => x.value?.toString().isNotEmpty ?? false)
-                    .map((x) => [x.key, x.value].join(': '))
-                    .join('\n'))
-          ]));
       submissionSnackbar(context, submission, todaysAnswer);
       notifyListeners();
       return;
