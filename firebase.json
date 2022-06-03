@@ -11,8 +11,7 @@
   },
   "hosting": {
     "public": "build/web",
-    "ignore": ["firebase.json", "**/.*", "**/node_modules/**"],
-    "predeploy": ["flutter build web --release"]
+    "ignore": ["firebase.json", "**/.*", "**/node_modules/**"]
   },
   "emulators": {
     "auth": {
