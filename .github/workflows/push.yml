@@ -1,0 +1,24 @@
+name: Push
+on:
+  push:
+    branches: [main]
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: "3.1.0-0.0.pre.1002"
+          channel: master
+          cache: true
+          cache-key: flutter
+          cache-path: ${{ runner.tool_cache }}/flutter
+          architecture: x64
+      - run: flutter pub get
+      - uses: FirebaseExtended/action-hosting-deploy@v0
+        with:
+          repoToken: "${{ secrets.GITHUB_TOKEN }}"
+          firebaseServiceAccount: "${{ secrets.FIREBASE_SERVICE_ACCOUNT_REIDLE_D39C2 }}"
+          channelId: live
+          projectId: reidle-d39c2
