@@ -20,6 +20,23 @@ final isWebMobile = kIsWeb &&
     (defaultTargetPlatform == TargetPlatform.iOS ||
         defaultTargetPlatform == TargetPlatform.android);
 
+class Game {
+  final Dictionary dictionary;
+  final String theWord;
+  final String theAnswer;
+  final bool isReal;
+  late final TimerProvider timerProvider;
+  late final ReidleProvider reidleProvider;
+
+  Game(this.dictionary, this.theWord, this.theAnswer, this.isReal) {
+    timerProvider = TimerProvider();
+    reidleProvider = ReidleProvider(dictionary, timerProvider, isReal, theWord, theAnswer);
+    if (!isReal) {
+      reidleProvider.start();
+    }
+  }
+}
+
 class TimerProvider extends ChangeNotifier {
   Timer? timer;
   var penalty = const Duration(seconds: 0);
@@ -41,6 +58,8 @@ class ReidleProvider extends ChangeNotifier {
   }();
 
   final usernameFocus = FocusNode();
+
+  Submission? finalSubmission;
 
   void onPressed(String k, BuildContext context) {
     if (k == '↵') {
@@ -64,11 +83,11 @@ class ReidleProvider extends ChangeNotifier {
   Future<DocumentReference<Submission>>? created;
 
   final Dictionary dictionary;
+  final bool isReal;
+  final String theWord;
+  final String theAnswer;
 
-  get todaysWord => dictionary.todaysWord;
-  get todaysAnswer => dictionary.todaysAnswer;
-
-  ReidleProvider(this.dictionary, this.timerProvider) {
+  ReidleProvider(this.dictionary, this.timerProvider, this.isReal, this.theWord, this.theAnswer) {
     usernameFocus.addListener(() {
       if (!usernameFocus.hasFocus &&
           (FirebaseAuth.instance.currentUser?.displayName ?? '') != usernameController.text) {
@@ -95,7 +114,7 @@ class ReidleProvider extends ChangeNotifier {
     _endTime = null;
     timerProvider.penalty = const Duration(seconds: 0);
     guesses.clear();
-    guesses.add(todaysWord);
+    guesses.add(theWord);
     notifyListeners();
     timerProvider.timer = Timer.periodic(const Duration(seconds: 1), (reidle) {
       timerProvider.notifyListeners();
@@ -136,11 +155,11 @@ class ReidleProvider extends ChangeNotifier {
 
     FirebaseAnalytics.instance.logEvent(name: "guess", parameters: {'guess': s});
     guesses.add(s);
-    final score = scoreWordle(todaysAnswer, guesses);
-    final checker = checkWordle(todaysAnswer, score);
+    final score = scoreWordle(theAnswer, guesses);
+    final checker = checkWordle(theAnswer, score);
     if (checker.finished) {
       stop();
-      final submission = Submission(
+      finalSubmission = Submission(
         name: FirebaseAuth.instance.currentUser?.name ?? '',
         time: duration,
         submissionTime: DateTime.now().toUtc(),
@@ -148,8 +167,10 @@ class ReidleProvider extends ChangeNotifier {
         error: checker.error,
         penalty: timerProvider.penalty,
       );
-      created = db.submissions.add(submission);
-      submissionSnackbar(context, submission, todaysAnswer);
+      if (isReal) {
+        created = db.submissions.add(finalSubmission!);
+      }
+      submissionSnackbar(context, finalSubmission!, theAnswer);
       notifyListeners();
       return;
     }
@@ -177,11 +198,7 @@ void main() async {
   await FirebaseAuth.instance.signInAnonymously();
   WidgetsFlutterBinding.ensureInitialized();
   final dict = await dictionary;
-  final timerProvider = TimerProvider();
-  runApp(MultiProvider(providers: [
-    ChangeNotifierProvider.value(value: timerProvider),
-    ChangeNotifierProvider.value(value: ReidleProvider(dict, timerProvider))
-  ], child: const MyApp()));
+  runApp(MaterialApp(home: MyApp(Game(dict, dict.todaysWord, dict.todaysAnswer, true))));
 }
 
 typedef TimerBuilder = Widget? Function(ReidleProvider reidle, BuildContext context);
@@ -198,213 +215,248 @@ class TimerWidget extends StatelessWidget {
 }
 
 class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+  final Game game;
+  const MyApp(this.game, {super.key});
+
+  bool get isReal => game.isReal;
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-        home: Scaffold(
-            body: SingleChildScrollView(
-      child: Center(
-          child: Column(
-        mainAxisAlignment: MainAxisAlignment.start,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Padding(
-            padding: const EdgeInsets.all(8.0),
-            child: StreamBuilder<User?>(
-              stream: FirebaseAuth.instance.userChanges(),
-              builder: (context, userSnapshot) => userSnapshot.data == null
-                  ? const Text("loading")
-                  : Column(
-                      children: [
-                        ConstrainedBox(
-                          constraints: const BoxConstraints(maxWidth: 300),
-                          child: Card(
-                            margin: const EdgeInsets.all(8),
-                            child:
-                                Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-                              TimerWidget((reidle, context) => (reidle.created == null)
-                                  ? null
-                                  : Padding(
-                                      padding: const EdgeInsets.all(8.0),
-                                      child: ElevatedButton.icon(
-                                          onPressed: reidle.undo,
-                                          icon: const Icon(Icons.undo),
-                                          label: const Text("Undo")),
-                                    )),
-                              TimerWidget((reidle, context) => reidle.guesses.isNotEmpty
-                                  ? null
-                                  : Padding(
-                                      padding: const EdgeInsets.all(8.0),
-                                      child: ElevatedButton.icon(
-                                          label: const Text("Play"),
-                                          onPressed: reidle.toggle,
-                                          icon: const Icon(Icons.play_arrow)),
-                                    )),
-                              TimerWidget(
-                                (reidle, context) => (reidle.guesses.isEmpty)
-                                    ? null
-                                    : Consumer<TimerProvider>(builder: (context, _, __) {
-                                        return Padding(
-                                          padding: const EdgeInsets.all(8.0),
-                                          child: Column(
-                                            children: [
-                                              Card(
-                                                  margin: const EdgeInsets.all(8),
-                                                  child: Padding(
-                                                    padding: const EdgeInsets.all(8.0),
-                                                    child: Text(reidle.duration.stopwatchString,
-                                                        style:
-                                                            GoogleFonts.robotoMono(fontSize: 20)),
-                                                  )),
-                                              if (reidle.timerProvider.penalty >
-                                                  const Duration(seconds: 0))
-                                                Card(
-                                                    margin: const EdgeInsets.all(8),
-                                                    child: Padding(
-                                                      padding: const EdgeInsets.all(8.0),
-                                                      child: Text(
-                                                          reidle.timerProvider.penalty
-                                                              .stopwatchString,
-                                                          style: GoogleFonts.robotoMono(
-                                                              fontSize: 20, color: Colors.red)),
-                                                    )),
-                                            ],
-                                          ),
-                                        );
-                                      }),
-                              ),
-                              Expanded(
-                                child: Padding(
-                                  padding: const EdgeInsets.all(8.0),
-                                  child: TimerWidget(
-                                    (reidle, context) => TextFormField(
-                                      focusNode: reidle.usernameFocus,
-                                      controller: reidle.usernameController,
-                                      autofocus: (userSnapshot.data?.displayName?.length ?? 0) == 0,
-                                      decoration: const InputDecoration(labelText: "My Name"),
-                                      maxLength: 10,
-                                      maxLengthEnforcement: MaxLengthEnforcement.enforced,
-                                      onFieldSubmitted: (_) => reidle.usernameSubmit(),
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ]),
-                          ),
-                        ),
-                        TimerWidget((reidle, context) => WordleGameWidget(reidle)),
-                        StreamBuilder<Submissions>(
-                          stream: db.submissionsStream,
-                          builder: (_, s) => Column(
-                            children: [
-                              ConstrainedBox(
-                                constraints: const BoxConstraints(maxHeight: 300),
-                                child: Card(
-                                  child: SingleChildScrollView(
-                                    child: DataTable(
-                                      columnSpacing: 20,
-                                      columns: [
-                                        'name',
-                                        'date',
-                                        'time',
-                                        'pen',
-                                        'paste',
-                                      ].map((s) => DataColumn(label: Text(s))).toList(),
-                                      rows: s.data?.submissions
-                                              .where((e) =>
-                                                  DateTime.now()
-                                                      .toUtc()
-                                                      .difference(e.submission.submissionTime) <
-                                                  const Duration(days: 10))
-                                              .map((e) => DataRow(
-                                                    onLongPress:
-                                                        e.submission.error?.isNotEmpty ?? false
-                                                            ? () => submissionSnackbar(
-                                                                context, e.submission)
-                                                            : null,
-                                                    color: MaterialStateProperty.all(e.isWinner
-                                                        ? Colors.green.shade100
-                                                        : !e.submission.won
-                                                            ? Colors.red.shade100
-                                                            : e.submission.name
-                                                                        .toLowerCase()
-                                                                        .trim() ==
-                                                                    userSnapshot.data?.name
-                                                                        .toLowerCase()
-                                                                        .trim()
-                                                                ? Colors.yellow.shade100
-                                                                : Colors.white),
-                                                    cells: [
-                                                      DataCell(Text(e.submission.name.substring(
-                                                          0, min(e.submission.name.length, 7)))),
-                                                      DataCell(Text(
-                                                          e.submission.submissionTime.dateString,
-                                                          style: TextStyle(
-                                                              fontWeight: e
-                                                                          .submission
-                                                                          .submissionTime
-                                                                          .dateString ==
-                                                                      DateTime.now()
-                                                                          .toUtc()
-                                                                          .dateString
-                                                                  ? FontWeight.bold
-                                                                  : FontWeight.normal))),
-                                                      DataCell(
-                                                          Text(e.submission.time.stopwatchString)),
-                                                      DataCell(() {
-                                                        final seconds =
-                                                            e.submission.penalty?.inSeconds ?? 0;
-                                                        if (seconds < 1) {
-                                                          return const Text("");
-                                                        }
-                                                        return Text("$seconds");
-                                                      }()),
-                                                      DataCell(Text(
-                                                        e.submission.paste ?? "",
-                                                        style: const TextStyle(fontSize: 6),
-                                                      )),
-                                                    ],
-                                                  ))
-                                              .toList() ??
-                                          [],
-                                    ),
-                                  ),
-                                ),
-                              ),
-                              ConstrainedBox(
-                                constraints: const BoxConstraints(maxHeight: 300),
-                                child: Card(
-                                  child: SingleChildScrollView(
-                                    child: DataTable(
-                                      columns: [
-                                        'name',
-                                        'wins',
-                                      ].map((s) => DataColumn(label: Text(s))).toList(),
-                                      rows: s.data?.leaderboard
-                                              .map((e) => DataRow(
-                                                    cells: [
-                                                      DataCell(Text(e.key)),
-                                                      DataCell(Text(e.value.toString()))
-                                                    ],
-                                                  ))
-                                              .toList() ??
-                                          [],
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-            ),
-          ),
+    return MultiProvider(
+        providers: [
+          ChangeNotifierProvider.value(value: game.timerProvider),
+          ChangeNotifierProvider.value(value: game.reidleProvider),
         ],
-      )),
-    )));
+        child: Scaffold(
+            body: SingleChildScrollView(
+          child: Center(
+              child: Column(
+            mainAxisAlignment: MainAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Padding(
+                padding: const EdgeInsets.all(8.0),
+                child: StreamBuilder<User?>(
+                  stream: FirebaseAuth.instance.userChanges(),
+                  builder: (context, userSnapshot) => userSnapshot.data == null
+                      ? const Text("loading")
+                      : Column(
+                          children: [
+                            ConstrainedBox(
+                              constraints: const BoxConstraints(maxWidth: 300),
+                              child: Card(
+                                margin: const EdgeInsets.all(8),
+                                child: Row(
+                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      TimerWidget(
+                                          (reidle, context) => (reidle.finalSubmission == null)
+                                              ? null
+                                              : Column(
+                                                  children: [
+                                                    if (game.reidleProvider.created != null)
+                                                      ElevatedButton.icon(
+                                                          onPressed: reidle.undo,
+                                                          icon: const Icon(Icons.undo),
+                                                          label: const Text("Undo")),
+                                                    const SizedBox(height: 8),
+                                                    ElevatedButton.icon(
+                                                        onPressed: () => Navigator.of(context).push(
+                                                            MaterialPageRoute(
+                                                                builder: (_) => MyApp(Game(
+                                                                    game.dictionary,
+                                                                    game.dictionary.randomWord(),
+                                                                    game.dictionary.randomAnswer(),
+                                                                    false)))),
+                                                        icon: const Icon(Icons.redo),
+                                                        label: const Text("Practice")),
+                                                  ],
+                                                )),
+                                      TimerWidget((reidle, context) => reidle.guesses.isNotEmpty
+                                          ? null
+                                          : Padding(
+                                              padding: const EdgeInsets.all(8.0),
+                                              child: ElevatedButton.icon(
+                                                  label: const Text("Play"),
+                                                  onPressed: reidle.toggle,
+                                                  icon: const Icon(Icons.play_arrow)),
+                                            )),
+                                      TimerWidget(
+                                        (reidle, context) => (reidle.guesses.isEmpty)
+                                            ? null
+                                            : Consumer<TimerProvider>(builder: (context, _, __) {
+                                                return Padding(
+                                                  padding: const EdgeInsets.all(8.0),
+                                                  child: Column(
+                                                    children: [
+                                                      Card(
+                                                          margin: const EdgeInsets.all(8),
+                                                          child: Padding(
+                                                            padding: const EdgeInsets.all(8.0),
+                                                            child: Text(
+                                                                reidle.duration.stopwatchString,
+                                                                style: GoogleFonts.robotoMono(
+                                                                    fontSize: 20)),
+                                                          )),
+                                                      if (reidle.timerProvider.penalty >
+                                                          const Duration(seconds: 0))
+                                                        Card(
+                                                            margin: const EdgeInsets.all(8),
+                                                            child: Padding(
+                                                              padding: const EdgeInsets.all(8.0),
+                                                              child: Text(
+                                                                  reidle.timerProvider.penalty
+                                                                      .stopwatchString,
+                                                                  style: GoogleFonts.robotoMono(
+                                                                      fontSize: 20,
+                                                                      color: Colors.red)),
+                                                            )),
+                                                    ],
+                                                  ),
+                                                );
+                                              }),
+                                      ),
+                                      if (isReal)
+                                        Expanded(
+                                          child: Padding(
+                                            padding: const EdgeInsets.all(8.0),
+                                            child: TimerWidget(
+                                              (reidle, context) => TextFormField(
+                                                focusNode: reidle.usernameFocus,
+                                                controller: reidle.usernameController,
+                                                autofocus:
+                                                    (userSnapshot.data?.displayName?.length ?? 0) ==
+                                                        0,
+                                                decoration:
+                                                    const InputDecoration(labelText: "My Name"),
+                                                maxLength: 10,
+                                                maxLengthEnforcement: MaxLengthEnforcement.enforced,
+                                                onFieldSubmitted: (_) => reidle.usernameSubmit(),
+                                              ),
+                                            ),
+                                          ),
+                                        ),
+                                    ]),
+                              ),
+                            ),
+                            TimerWidget((reidle, context) => WordleGameWidget(reidle)),
+                            if (isReal)
+                              StreamBuilder<Submissions>(
+                                stream: db.submissionsStream,
+                                builder: (_, s) => Column(
+                                  children: [
+                                    ConstrainedBox(
+                                      constraints: const BoxConstraints(maxHeight: 300),
+                                      child: Card(
+                                        child: SingleChildScrollView(
+                                          child: DataTable(
+                                            columnSpacing: 20,
+                                            columns: [
+                                              'name',
+                                              'date',
+                                              'time',
+                                              'pen',
+                                              'paste',
+                                            ].map((s) => DataColumn(label: Text(s))).toList(),
+                                            rows: s.data?.submissions
+                                                    .where((e) =>
+                                                        DateTime.now().toUtc().difference(
+                                                            e.submission.submissionTime) <
+                                                        const Duration(days: 10))
+                                                    .map((e) => DataRow(
+                                                          onLongPress:
+                                                              e.submission.error?.isNotEmpty ??
+                                                                      false
+                                                                  ? () => submissionSnackbar(
+                                                                      context, e.submission)
+                                                                  : null,
+                                                          color: MaterialStateProperty.all(e
+                                                                  .isWinner
+                                                              ? Colors.green.shade100
+                                                              : !e.submission.won
+                                                                  ? Colors.red.shade100
+                                                                  : e.submission.name
+                                                                              .toLowerCase()
+                                                                              .trim() ==
+                                                                          userSnapshot.data?.name
+                                                                              .toLowerCase()
+                                                                              .trim()
+                                                                      ? Colors.yellow.shade100
+                                                                      : Colors.white),
+                                                          cells: [
+                                                            DataCell(Text(e.submission.name
+                                                                .substring(
+                                                                    0,
+                                                                    min(e.submission.name.length,
+                                                                        7)))),
+                                                            DataCell(Text(
+                                                                e.submission.submissionTime
+                                                                    .dateString,
+                                                                style: TextStyle(
+                                                                    fontWeight: e
+                                                                                .submission
+                                                                                .submissionTime
+                                                                                .dateString ==
+                                                                            DateTime.now()
+                                                                                .toUtc()
+                                                                                .dateString
+                                                                        ? FontWeight.bold
+                                                                        : FontWeight.normal))),
+                                                            DataCell(Text(
+                                                                e.submission.time.stopwatchString)),
+                                                            DataCell(() {
+                                                              final seconds =
+                                                                  e.submission.penalty?.inSeconds ??
+                                                                      0;
+                                                              if (seconds < 1) {
+                                                                return const Text("");
+                                                              }
+                                                              return Text("$seconds");
+                                                            }()),
+                                                            DataCell(Text(
+                                                              e.submission.paste ?? "",
+                                                              style: const TextStyle(fontSize: 6),
+                                                            )),
+                                                          ],
+                                                        ))
+                                                    .toList() ??
+                                                [],
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                    ConstrainedBox(
+                                      constraints: const BoxConstraints(maxHeight: 300),
+                                      child: Card(
+                                        child: SingleChildScrollView(
+                                          child: DataTable(
+                                            columns: [
+                                              'name',
+                                              'wins',
+                                            ].map((s) => DataColumn(label: Text(s))).toList(),
+                                            rows: s.data?.leaderboard
+                                                    .map((e) => DataRow(
+                                                          cells: [
+                                                            DataCell(Text(e.key)),
+                                                            DataCell(Text(e.value.toString()))
+                                                          ],
+                                                        ))
+                                                    .toList() ??
+                                                [],
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                          ],
+                        ),
+                ),
+              ),
+            ],
+          )),
+        )));
   }
 }
 
@@ -422,7 +474,7 @@ class WordleGameWidget extends StatelessWidget {
             children: [
               Padding(
                 padding: const EdgeInsets.all(8.0),
-                child: WordleWidget(reidle.todaysAnswer, guesses),
+                child: WordleWidget(reidle.theAnswer, guesses),
               ),
               if (reidle.isRunning)
                 ConstrainedBox(
@@ -439,7 +491,7 @@ class WordleGameWidget extends StatelessWidget {
               if (reidle.isRunning)
                 Padding(
                   padding: const EdgeInsets.symmetric(vertical: 8.0),
-                  child: WordleKeyboardWidget(reidle.todaysAnswer, guesses,
+                  child: WordleKeyboardWidget(reidle.theAnswer, guesses,
                       onPressed: (s) => reidle.onPressed(s, context)),
                 )
             ],
