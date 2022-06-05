@@ -8,6 +8,7 @@ class Submission {
   final String? error;
   final String? paste;
   final Duration? penalty;
+  final String? uid;
 
   bool get won {
     return (error?.length ?? 0) == 0 && (paste?.trimRight().endsWith("🟩🟩🟩🟩🟩") ?? false);
@@ -20,6 +21,7 @@ class Submission {
     this.error,
     this.paste,
     this.penalty,
+    this.uid,
   });
 
   factory Submission.fromFirestore(Map<String, dynamic> json) => Submission(
@@ -29,6 +31,7 @@ class Submission {
         submissionTime: DateTime.parse(json['submissionTime'] as String),
         error: json['error'] as String?,
         paste: json['paste'] as String?,
+        uid: json['uid'] as String?,
       );
 
   Map<String, dynamic> get toFirestore => {
@@ -38,6 +41,7 @@ class Submission {
         'error': error,
         'paste': paste,
         'penalty': penalty?.inMicroseconds ?? 0,
+        'uid': uid,
       };
 }
 

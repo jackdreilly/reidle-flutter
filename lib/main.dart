@@ -166,6 +166,7 @@ class ReidleProvider extends ChangeNotifier {
         paste: score.paste,
         error: checker.error,
         penalty: timerProvider.penalty,
+        uid: FirebaseAuth.instance.currentUser?.uid,
       );
       if (isReal) {
         created = db.submissions.add(finalSubmission!);
