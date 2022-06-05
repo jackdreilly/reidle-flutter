@@ -250,37 +250,41 @@ class MyApp extends StatelessWidget {
                                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                     children: [
                                       TimerWidget(
-                                          (reidle, context) => (reidle.finalSubmission == null)
-                                              ? null
-                                              : Column(
-                                                  children: [
-                                                    if (game.reidleProvider.created != null)
-                                                      ElevatedButton.icon(
-                                                          onPressed: reidle.undo,
-                                                          icon: const Icon(Icons.undo),
-                                                          label: const Text("Undo")),
-                                                    const SizedBox(height: 8),
-                                                    ElevatedButton.icon(
-                                                        onPressed: () => Navigator.of(context).push(
-                                                            MaterialPageRoute(
-                                                                builder: (_) => MyApp(Game(
-                                                                    game.dictionary,
-                                                                    game.dictionary.randomWord(),
-                                                                    game.dictionary.randomAnswer(),
-                                                                    false)))),
-                                                        icon: const Icon(Icons.redo),
-                                                        label: const Text("Practice")),
-                                                  ],
-                                                )),
-                                      TimerWidget((reidle, context) => reidle.guesses.isNotEmpty
-                                          ? null
-                                          : Padding(
-                                              padding: const EdgeInsets.all(8.0),
-                                              child: ElevatedButton.icon(
-                                                  label: const Text("Play"),
-                                                  onPressed: reidle.toggle,
-                                                  icon: const Icon(Icons.play_arrow)),
-                                            )),
+                                        (reidle, context) => Column(
+                                          children: [
+                                            if (game.reidleProvider.guesses.isEmpty)
+                                              Padding(
+                                                padding: const EdgeInsets.all(8.0),
+                                                child: ElevatedButton.icon(
+                                                    label: const Text("Play"),
+                                                    onPressed: reidle.toggle,
+                                                    icon: const Icon(Icons.play_arrow)),
+                                              ),
+                                            if (!game.reidleProvider.isRunning)
+                                              Padding(
+                                                padding: const EdgeInsets.all(8.0),
+                                                child: ElevatedButton.icon(
+                                                    onPressed: () => Navigator.of(context).push(
+                                                        MaterialPageRoute(
+                                                            builder: (_) => MyApp(Game(
+                                                                game.dictionary,
+                                                                game.dictionary.randomWord(),
+                                                                game.dictionary.randomAnswer(),
+                                                                false)))),
+                                                    icon: const Icon(Icons.timer),
+                                                    label: const Text("Practice")),
+                                              ),
+                                            if (game.reidleProvider.created != null)
+                                              Padding(
+                                                padding: const EdgeInsets.all(8.0),
+                                                child: ElevatedButton.icon(
+                                                    onPressed: reidle.undo,
+                                                    icon: const Icon(Icons.undo),
+                                                    label: const Text("Undo")),
+                                              ),
+                                          ],
+                                        ),
+                                      ),
                                       TimerWidget(
                                         (reidle, context) => (reidle.guesses.isEmpty)
                                             ? null
