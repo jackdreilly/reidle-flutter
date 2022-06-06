@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
+import 'package:reidle/recorder.dart';
 
 class Submission {
   final String name;
@@ -10,6 +11,7 @@ class Submission {
   final String? paste;
   final Duration? penalty;
   final String? uid;
+  final List<RecorderEvent>? events;
 
   bool get won {
     return (error?.length ?? 0) == 0 && (paste?.trimRight().endsWith("🟩🟩🟩🟩🟩") ?? false);
@@ -23,6 +25,7 @@ class Submission {
     this.paste,
     this.penalty,
     this.uid,
+    this.events,
   });
 
   factory Submission.fromFirestore(Map<String, dynamic> json) => Submission(
@@ -33,6 +36,9 @@ class Submission {
         error: json['error'] as String?,
         paste: json['paste'] as String?,
         uid: json['uid'] as String?,
+        events: (json['events'] as List<dynamic>?)
+            ?.map((e) => RecorderEvent.fromJson(e as Map<String, dynamic>))
+            .toList(),
       );
 
   Map<String, dynamic> get toFirestore => {
@@ -43,7 +49,15 @@ class Submission {
         'paste': paste,
         'penalty': penalty?.inMicroseconds ?? 0,
         'uid': uid,
+        'events': events?.map((e) => _patch(e.toJson())).toList(),
       };
+}
+
+Map<String, dynamic> _patch(Map<String, dynamic> json) {
+  return {
+    ...json,
+    'event': json['event']?.toJson(),
+  };
 }
 
 extension UserName on User {
@@ -88,12 +102,19 @@ class Submissions {
   final List<StreamSubmission> submissions;
   Submissions(this.submissions);
 
+  StreamSubmission? get currentWinner =>
+      submissions.where((s) => s.isWinner).where((s) => s.isToday).firstOrNull;
+
+  List<RecorderEvent>? get playback => currentWinner?.submission.events;
+
   List<MapEntry<String, int>> get leaderboard => submissions
       .where((s) => s.isWinner)
       .groupBy((t) => t.submission.name.toLowerCase().trim().replaceAll(' ', ''))
       .map((e) => MapEntry(e.key, e.value.length))
       .toList()
     ..sort((a, b) => a.value > b.value ? -1 : 1);
+
+  Duration? get bestTime => currentWinner?.submission.time;
 }
 
 class StreamSubmission {
@@ -101,15 +122,20 @@ class StreamSubmission {
   final bool isWinner;
 
   StreamSubmission(this.submission, this.isWinner);
+
+  bool get isToday => submission.submissionTime.isToday;
 }
 
 final db = _Db();
 
 extension _D on DateTime {
+  bool get isToday => DateTime.now().toUtc().dateHash == toUtc().dateHash;
   int get dateHash => [year, month, day].join('').hashCode;
 }
 
 extension<T> on Iterable<T> {
+  T? get firstOrNull => isEmpty ? null : first;
+
   Iterable<MapEntry<K, List<T>>> groupBy<K>(K Function(T t) grouper) {
     final map = <K, List<T>>{};
     for (final t in this) {

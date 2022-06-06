@@ -1,13 +1,15 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:flutter/foundation.dart';
+
+part 'recorder.g.dart';
 part 'recorder.freezed.dart';
 
 @freezed
 class Event with _$Event {
-  const factory Event.letter(String key) = Letter;
-  const factory Event.backspace() = Backspace;
+  const factory Event.word(String word) = Word;
   const factory Event.enter() = Enter;
   const factory Event.penalty(Duration duration) = Penalty;
+  factory Event.fromJson(Map<String, dynamic> json) => _$EventFromJson(json);
 }
 
 @freezed
@@ -16,6 +18,7 @@ class RecorderEvent with _$RecorderEvent {
     required Duration duration,
     required Event event,
   }) = _RecorderEvent;
+  factory RecorderEvent.fromJson(Map<String, dynamic> json) => _$RecorderEventFromJson(json);
 }
 
 class Recorder {

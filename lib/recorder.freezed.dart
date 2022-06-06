@@ -14,28 +14,40 @@ T _$identity<T>(T value) => value;
 final _privateConstructorUsedError = UnsupportedError(
     'It seems like you constructed your class using `MyClass._()`. This constructor is only meant to be used by freezed and you are not supposed to need it nor use it.\nPlease check the documentation here for more information: https://github.com/rrousselGit/freezed#custom-getters-and-methods');
 
+Event _$EventFromJson(Map<String, dynamic> json) {
+  switch (json['runtimeType']) {
+    case 'word':
+      return Word.fromJson(json);
+    case 'enter':
+      return Enter.fromJson(json);
+    case 'penalty':
+      return Penalty.fromJson(json);
+
+    default:
+      throw CheckedFromJsonException(json, 'runtimeType', 'Event',
+          'Invalid union type "${json['runtimeType']}"!');
+  }
+}
+
 /// @nodoc
 mixin _$Event {
   @optionalTypeArgs
   TResult when<TResult extends Object?>({
-    required TResult Function(String key) letter,
-    required TResult Function() backspace,
+    required TResult Function(String word) word,
     required TResult Function() enter,
     required TResult Function(Duration duration) penalty,
   }) =>
       throw _privateConstructorUsedError;
   @optionalTypeArgs
   TResult? whenOrNull<TResult extends Object?>({
-    TResult Function(String key)? letter,
-    TResult Function()? backspace,
+    TResult Function(String word)? word,
     TResult Function()? enter,
     TResult Function(Duration duration)? penalty,
   }) =>
       throw _privateConstructorUsedError;
   @optionalTypeArgs
   TResult maybeWhen<TResult extends Object?>({
-    TResult Function(String key)? letter,
-    TResult Function()? backspace,
+    TResult Function(String word)? word,
     TResult Function()? enter,
     TResult Function(Duration duration)? penalty,
     required TResult orElse(),
@@ -43,29 +55,27 @@ mixin _$Event {
       throw _privateConstructorUsedError;
   @optionalTypeArgs
   TResult map<TResult extends Object?>({
-    required TResult Function(Letter value) letter,
-    required TResult Function(Backspace value) backspace,
+    required TResult Function(Word value) word,
     required TResult Function(Enter value) enter,
     required TResult Function(Penalty value) penalty,
   }) =>
       throw _privateConstructorUsedError;
   @optionalTypeArgs
   TResult? mapOrNull<TResult extends Object?>({
-    TResult Function(Letter value)? letter,
-    TResult Function(Backspace value)? backspace,
+    TResult Function(Word value)? word,
     TResult Function(Enter value)? enter,
     TResult Function(Penalty value)? penalty,
   }) =>
       throw _privateConstructorUsedError;
   @optionalTypeArgs
   TResult maybeMap<TResult extends Object?>({
-    TResult Function(Letter value)? letter,
-    TResult Function(Backspace value)? backspace,
+    TResult Function(Word value)? word,
     TResult Function(Enter value)? enter,
     TResult Function(Penalty value)? penalty,
     required TResult orElse(),
   }) =>
       throw _privateConstructorUsedError;
+  Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
 }
 
 /// @nodoc
@@ -84,105 +94,108 @@ class _$EventCopyWithImpl<$Res> implements $EventCopyWith<$Res> {
 }
 
 /// @nodoc
-abstract class _$$LetterCopyWith<$Res> {
-  factory _$$LetterCopyWith(_$Letter value, $Res Function(_$Letter) then) =
-      __$$LetterCopyWithImpl<$Res>;
-  $Res call({String key});
+abstract class _$$WordCopyWith<$Res> {
+  factory _$$WordCopyWith(_$Word value, $Res Function(_$Word) then) =
+      __$$WordCopyWithImpl<$Res>;
+  $Res call({String word});
 }
 
 /// @nodoc
-class __$$LetterCopyWithImpl<$Res> extends _$EventCopyWithImpl<$Res>
-    implements _$$LetterCopyWith<$Res> {
-  __$$LetterCopyWithImpl(_$Letter _value, $Res Function(_$Letter) _then)
-      : super(_value, (v) => _then(v as _$Letter));
+class __$$WordCopyWithImpl<$Res> extends _$EventCopyWithImpl<$Res>
+    implements _$$WordCopyWith<$Res> {
+  __$$WordCopyWithImpl(_$Word _value, $Res Function(_$Word) _then)
+      : super(_value, (v) => _then(v as _$Word));
 
   @override
-  _$Letter get _value => super._value as _$Letter;
+  _$Word get _value => super._value as _$Word;
 
   @override
   $Res call({
-    Object? key = freezed,
+    Object? word = freezed,
   }) {
-    return _then(_$Letter(
-      key == freezed
-          ? _value.key
-          : key // ignore: cast_nullable_to_non_nullable
+    return _then(_$Word(
+      word == freezed
+          ? _value.word
+          : word // ignore: cast_nullable_to_non_nullable
               as String,
     ));
   }
 }
 
 /// @nodoc
+@JsonSerializable()
+class _$Word with DiagnosticableTreeMixin implements Word {
+  const _$Word(this.word, {final String? $type}) : $type = $type ?? 'word';
 
-class _$Letter with DiagnosticableTreeMixin implements Letter {
-  const _$Letter(this.key);
+  factory _$Word.fromJson(Map<String, dynamic> json) => _$$WordFromJson(json);
 
   @override
-  final String key;
+  final String word;
+
+  @JsonKey(name: 'runtimeType')
+  final String $type;
 
   @override
   String toString({DiagnosticLevel minLevel = DiagnosticLevel.info}) {
-    return 'Event.letter(key: $key)';
+    return 'Event.word(word: $word)';
   }
 
   @override
   void debugFillProperties(DiagnosticPropertiesBuilder properties) {
     super.debugFillProperties(properties);
     properties
-      ..add(DiagnosticsProperty('type', 'Event.letter'))
-      ..add(DiagnosticsProperty('key', key));
+      ..add(DiagnosticsProperty('type', 'Event.word'))
+      ..add(DiagnosticsProperty('word', word));
   }
 
   @override
   bool operator ==(dynamic other) {
     return identical(this, other) ||
         (other.runtimeType == runtimeType &&
-            other is _$Letter &&
-            const DeepCollectionEquality().equals(other.key, key));
+            other is _$Word &&
+            const DeepCollectionEquality().equals(other.word, word));
   }
 
+  @JsonKey(ignore: true)
   @override
   int get hashCode =>
-      Object.hash(runtimeType, const DeepCollectionEquality().hash(key));
+      Object.hash(runtimeType, const DeepCollectionEquality().hash(word));
 
   @JsonKey(ignore: true)
   @override
-  _$$LetterCopyWith<_$Letter> get copyWith =>
-      __$$LetterCopyWithImpl<_$Letter>(this, _$identity);
+  _$$WordCopyWith<_$Word> get copyWith =>
+      __$$WordCopyWithImpl<_$Word>(this, _$identity);
 
   @override
   @optionalTypeArgs
   TResult when<TResult extends Object?>({
-    required TResult Function(String key) letter,
-    required TResult Function() backspace,
+    required TResult Function(String word) word,
     required TResult Function() enter,
     required TResult Function(Duration duration) penalty,
   }) {
-    return letter(key);
+    return word(this.word);
   }
 
   @override
   @optionalTypeArgs
   TResult? whenOrNull<TResult extends Object?>({
-    TResult Function(String key)? letter,
-    TResult Function()? backspace,
+    TResult Function(String word)? word,
     TResult Function()? enter,
     TResult Function(Duration duration)? penalty,
   }) {
-    return letter?.call(key);
+    return word?.call(this.word);
   }
 
   @override
   @optionalTypeArgs
   TResult maybeWhen<TResult extends Object?>({
-    TResult Function(String key)? letter,
-    TResult Function()? backspace,
+    TResult Function(String word)? word,
     TResult Function()? enter,
     TResult Function(Duration duration)? penalty,
     required TResult orElse(),
   }) {
-    if (letter != null) {
-      return letter(key);
+    if (word != null) {
+      return word(this.word);
     }
     return orElse();
   }
@@ -190,170 +203,51 @@ class _$Letter with DiagnosticableTreeMixin implements Letter {
   @override
   @optionalTypeArgs
   TResult map<TResult extends Object?>({
-    required TResult Function(Letter value) letter,
-    required TResult Function(Backspace value) backspace,
+    required TResult Function(Word value) word,
     required TResult Function(Enter value) enter,
     required TResult Function(Penalty value) penalty,
   }) {
-    return letter(this);
+    return word(this);
   }
 
   @override
   @optionalTypeArgs
   TResult? mapOrNull<TResult extends Object?>({
-    TResult Function(Letter value)? letter,
-    TResult Function(Backspace value)? backspace,
+    TResult Function(Word value)? word,
     TResult Function(Enter value)? enter,
     TResult Function(Penalty value)? penalty,
   }) {
-    return letter?.call(this);
+    return word?.call(this);
   }
 
   @override
   @optionalTypeArgs
   TResult maybeMap<TResult extends Object?>({
-    TResult Function(Letter value)? letter,
-    TResult Function(Backspace value)? backspace,
+    TResult Function(Word value)? word,
     TResult Function(Enter value)? enter,
     TResult Function(Penalty value)? penalty,
     required TResult orElse(),
   }) {
-    if (letter != null) {
-      return letter(this);
+    if (word != null) {
+      return word(this);
     }
     return orElse();
   }
+
+  @override
+  Map<String, dynamic> toJson() {
+    return _$$WordToJson(this);
+  }
 }
 
-abstract class Letter implements Event {
-  const factory Letter(final String key) = _$Letter;
+abstract class Word implements Event {
+  const factory Word(final String word) = _$Word;
 
-  String get key => throw _privateConstructorUsedError;
+  factory Word.fromJson(Map<String, dynamic> json) = _$Word.fromJson;
+
+  String get word => throw _privateConstructorUsedError;
   @JsonKey(ignore: true)
-  _$$LetterCopyWith<_$Letter> get copyWith =>
-      throw _privateConstructorUsedError;
-}
-
-/// @nodoc
-abstract class _$$BackspaceCopyWith<$Res> {
-  factory _$$BackspaceCopyWith(
-          _$Backspace value, $Res Function(_$Backspace) then) =
-      __$$BackspaceCopyWithImpl<$Res>;
-}
-
-/// @nodoc
-class __$$BackspaceCopyWithImpl<$Res> extends _$EventCopyWithImpl<$Res>
-    implements _$$BackspaceCopyWith<$Res> {
-  __$$BackspaceCopyWithImpl(
-      _$Backspace _value, $Res Function(_$Backspace) _then)
-      : super(_value, (v) => _then(v as _$Backspace));
-
-  @override
-  _$Backspace get _value => super._value as _$Backspace;
-}
-
-/// @nodoc
-
-class _$Backspace with DiagnosticableTreeMixin implements Backspace {
-  const _$Backspace();
-
-  @override
-  String toString({DiagnosticLevel minLevel = DiagnosticLevel.info}) {
-    return 'Event.backspace()';
-  }
-
-  @override
-  void debugFillProperties(DiagnosticPropertiesBuilder properties) {
-    super.debugFillProperties(properties);
-    properties.add(DiagnosticsProperty('type', 'Event.backspace'));
-  }
-
-  @override
-  bool operator ==(dynamic other) {
-    return identical(this, other) ||
-        (other.runtimeType == runtimeType && other is _$Backspace);
-  }
-
-  @override
-  int get hashCode => runtimeType.hashCode;
-
-  @override
-  @optionalTypeArgs
-  TResult when<TResult extends Object?>({
-    required TResult Function(String key) letter,
-    required TResult Function() backspace,
-    required TResult Function() enter,
-    required TResult Function(Duration duration) penalty,
-  }) {
-    return backspace();
-  }
-
-  @override
-  @optionalTypeArgs
-  TResult? whenOrNull<TResult extends Object?>({
-    TResult Function(String key)? letter,
-    TResult Function()? backspace,
-    TResult Function()? enter,
-    TResult Function(Duration duration)? penalty,
-  }) {
-    return backspace?.call();
-  }
-
-  @override
-  @optionalTypeArgs
-  TResult maybeWhen<TResult extends Object?>({
-    TResult Function(String key)? letter,
-    TResult Function()? backspace,
-    TResult Function()? enter,
-    TResult Function(Duration duration)? penalty,
-    required TResult orElse(),
-  }) {
-    if (backspace != null) {
-      return backspace();
-    }
-    return orElse();
-  }
-
-  @override
-  @optionalTypeArgs
-  TResult map<TResult extends Object?>({
-    required TResult Function(Letter value) letter,
-    required TResult Function(Backspace value) backspace,
-    required TResult Function(Enter value) enter,
-    required TResult Function(Penalty value) penalty,
-  }) {
-    return backspace(this);
-  }
-
-  @override
-  @optionalTypeArgs
-  TResult? mapOrNull<TResult extends Object?>({
-    TResult Function(Letter value)? letter,
-    TResult Function(Backspace value)? backspace,
-    TResult Function(Enter value)? enter,
-    TResult Function(Penalty value)? penalty,
-  }) {
-    return backspace?.call(this);
-  }
-
-  @override
-  @optionalTypeArgs
-  TResult maybeMap<TResult extends Object?>({
-    TResult Function(Letter value)? letter,
-    TResult Function(Backspace value)? backspace,
-    TResult Function(Enter value)? enter,
-    TResult Function(Penalty value)? penalty,
-    required TResult orElse(),
-  }) {
-    if (backspace != null) {
-      return backspace(this);
-    }
-    return orElse();
-  }
-}
-
-abstract class Backspace implements Event {
-  const factory Backspace() = _$Backspace;
+  _$$WordCopyWith<_$Word> get copyWith => throw _privateConstructorUsedError;
 }
 
 /// @nodoc
@@ -373,9 +267,14 @@ class __$$EnterCopyWithImpl<$Res> extends _$EventCopyWithImpl<$Res>
 }
 
 /// @nodoc
-
+@JsonSerializable()
 class _$Enter with DiagnosticableTreeMixin implements Enter {
-  const _$Enter();
+  const _$Enter({final String? $type}) : $type = $type ?? 'enter';
+
+  factory _$Enter.fromJson(Map<String, dynamic> json) => _$$EnterFromJson(json);
+
+  @JsonKey(name: 'runtimeType')
+  final String $type;
 
   @override
   String toString({DiagnosticLevel minLevel = DiagnosticLevel.info}) {
@@ -394,14 +293,14 @@ class _$Enter with DiagnosticableTreeMixin implements Enter {
         (other.runtimeType == runtimeType && other is _$Enter);
   }
 
+  @JsonKey(ignore: true)
   @override
   int get hashCode => runtimeType.hashCode;
 
   @override
   @optionalTypeArgs
   TResult when<TResult extends Object?>({
-    required TResult Function(String key) letter,
-    required TResult Function() backspace,
+    required TResult Function(String word) word,
     required TResult Function() enter,
     required TResult Function(Duration duration) penalty,
   }) {
@@ -411,8 +310,7 @@ class _$Enter with DiagnosticableTreeMixin implements Enter {
   @override
   @optionalTypeArgs
   TResult? whenOrNull<TResult extends Object?>({
-    TResult Function(String key)? letter,
-    TResult Function()? backspace,
+    TResult Function(String word)? word,
     TResult Function()? enter,
     TResult Function(Duration duration)? penalty,
   }) {
@@ -422,8 +320,7 @@ class _$Enter with DiagnosticableTreeMixin implements Enter {
   @override
   @optionalTypeArgs
   TResult maybeWhen<TResult extends Object?>({
-    TResult Function(String key)? letter,
-    TResult Function()? backspace,
+    TResult Function(String word)? word,
     TResult Function()? enter,
     TResult Function(Duration duration)? penalty,
     required TResult orElse(),
@@ -437,8 +334,7 @@ class _$Enter with DiagnosticableTreeMixin implements Enter {
   @override
   @optionalTypeArgs
   TResult map<TResult extends Object?>({
-    required TResult Function(Letter value) letter,
-    required TResult Function(Backspace value) backspace,
+    required TResult Function(Word value) word,
     required TResult Function(Enter value) enter,
     required TResult Function(Penalty value) penalty,
   }) {
@@ -448,8 +344,7 @@ class _$Enter with DiagnosticableTreeMixin implements Enter {
   @override
   @optionalTypeArgs
   TResult? mapOrNull<TResult extends Object?>({
-    TResult Function(Letter value)? letter,
-    TResult Function(Backspace value)? backspace,
+    TResult Function(Word value)? word,
     TResult Function(Enter value)? enter,
     TResult Function(Penalty value)? penalty,
   }) {
@@ -459,8 +354,7 @@ class _$Enter with DiagnosticableTreeMixin implements Enter {
   @override
   @optionalTypeArgs
   TResult maybeMap<TResult extends Object?>({
-    TResult Function(Letter value)? letter,
-    TResult Function(Backspace value)? backspace,
+    TResult Function(Word value)? word,
     TResult Function(Enter value)? enter,
     TResult Function(Penalty value)? penalty,
     required TResult orElse(),
@@ -470,10 +364,17 @@ class _$Enter with DiagnosticableTreeMixin implements Enter {
     }
     return orElse();
   }
+
+  @override
+  Map<String, dynamic> toJson() {
+    return _$$EnterToJson(this);
+  }
 }
 
 abstract class Enter implements Event {
   const factory Enter() = _$Enter;
+
+  factory Enter.fromJson(Map<String, dynamic> json) = _$Enter.fromJson;
 }
 
 /// @nodoc
@@ -506,12 +407,19 @@ class __$$PenaltyCopyWithImpl<$Res> extends _$EventCopyWithImpl<$Res>
 }
 
 /// @nodoc
-
+@JsonSerializable()
 class _$Penalty with DiagnosticableTreeMixin implements Penalty {
-  const _$Penalty(this.duration);
+  const _$Penalty(this.duration, {final String? $type})
+      : $type = $type ?? 'penalty';
+
+  factory _$Penalty.fromJson(Map<String, dynamic> json) =>
+      _$$PenaltyFromJson(json);
 
   @override
   final Duration duration;
+
+  @JsonKey(name: 'runtimeType')
+  final String $type;
 
   @override
   String toString({DiagnosticLevel minLevel = DiagnosticLevel.info}) {
@@ -534,6 +442,7 @@ class _$Penalty with DiagnosticableTreeMixin implements Penalty {
             const DeepCollectionEquality().equals(other.duration, duration));
   }
 
+  @JsonKey(ignore: true)
   @override
   int get hashCode =>
       Object.hash(runtimeType, const DeepCollectionEquality().hash(duration));
@@ -546,8 +455,7 @@ class _$Penalty with DiagnosticableTreeMixin implements Penalty {
   @override
   @optionalTypeArgs
   TResult when<TResult extends Object?>({
-    required TResult Function(String key) letter,
-    required TResult Function() backspace,
+    required TResult Function(String word) word,
     required TResult Function() enter,
     required TResult Function(Duration duration) penalty,
   }) {
@@ -557,8 +465,7 @@ class _$Penalty with DiagnosticableTreeMixin implements Penalty {
   @override
   @optionalTypeArgs
   TResult? whenOrNull<TResult extends Object?>({
-    TResult Function(String key)? letter,
-    TResult Function()? backspace,
+    TResult Function(String word)? word,
     TResult Function()? enter,
     TResult Function(Duration duration)? penalty,
   }) {
@@ -568,8 +475,7 @@ class _$Penalty with DiagnosticableTreeMixin implements Penalty {
   @override
   @optionalTypeArgs
   TResult maybeWhen<TResult extends Object?>({
-    TResult Function(String key)? letter,
-    TResult Function()? backspace,
+    TResult Function(String word)? word,
     TResult Function()? enter,
     TResult Function(Duration duration)? penalty,
     required TResult orElse(),
@@ -583,8 +489,7 @@ class _$Penalty with DiagnosticableTreeMixin implements Penalty {
   @override
   @optionalTypeArgs
   TResult map<TResult extends Object?>({
-    required TResult Function(Letter value) letter,
-    required TResult Function(Backspace value) backspace,
+    required TResult Function(Word value) word,
     required TResult Function(Enter value) enter,
     required TResult Function(Penalty value) penalty,
   }) {
@@ -594,8 +499,7 @@ class _$Penalty with DiagnosticableTreeMixin implements Penalty {
   @override
   @optionalTypeArgs
   TResult? mapOrNull<TResult extends Object?>({
-    TResult Function(Letter value)? letter,
-    TResult Function(Backspace value)? backspace,
+    TResult Function(Word value)? word,
     TResult Function(Enter value)? enter,
     TResult Function(Penalty value)? penalty,
   }) {
@@ -605,8 +509,7 @@ class _$Penalty with DiagnosticableTreeMixin implements Penalty {
   @override
   @optionalTypeArgs
   TResult maybeMap<TResult extends Object?>({
-    TResult Function(Letter value)? letter,
-    TResult Function(Backspace value)? backspace,
+    TResult Function(Word value)? word,
     TResult Function(Enter value)? enter,
     TResult Function(Penalty value)? penalty,
     required TResult orElse(),
@@ -616,10 +519,17 @@ class _$Penalty with DiagnosticableTreeMixin implements Penalty {
     }
     return orElse();
   }
+
+  @override
+  Map<String, dynamic> toJson() {
+    return _$$PenaltyToJson(this);
+  }
 }
 
 abstract class Penalty implements Event {
   const factory Penalty(final Duration duration) = _$Penalty;
+
+  factory Penalty.fromJson(Map<String, dynamic> json) = _$Penalty.fromJson;
 
   Duration get duration => throw _privateConstructorUsedError;
   @JsonKey(ignore: true)
@@ -627,11 +537,16 @@ abstract class Penalty implements Event {
       throw _privateConstructorUsedError;
 }
 
+RecorderEvent _$RecorderEventFromJson(Map<String, dynamic> json) {
+  return _RecorderEvent.fromJson(json);
+}
+
 /// @nodoc
 mixin _$RecorderEvent {
   Duration get duration => throw _privateConstructorUsedError;
   Event get event => throw _privateConstructorUsedError;
 
+  Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
   @JsonKey(ignore: true)
   $RecorderEventCopyWith<RecorderEvent> get copyWith =>
       throw _privateConstructorUsedError;
@@ -724,9 +639,12 @@ class __$$_RecorderEventCopyWithImpl<$Res>
 }
 
 /// @nodoc
-
+@JsonSerializable()
 class _$_RecorderEvent with DiagnosticableTreeMixin implements _RecorderEvent {
   const _$_RecorderEvent({required this.duration, required this.event});
+
+  factory _$_RecorderEvent.fromJson(Map<String, dynamic> json) =>
+      _$$_RecorderEventFromJson(json);
 
   @override
   final Duration duration;
@@ -756,6 +674,7 @@ class _$_RecorderEvent with DiagnosticableTreeMixin implements _RecorderEvent {
             const DeepCollectionEquality().equals(other.event, event));
   }
 
+  @JsonKey(ignore: true)
   @override
   int get hashCode => Object.hash(
       runtimeType,
@@ -766,12 +685,20 @@ class _$_RecorderEvent with DiagnosticableTreeMixin implements _RecorderEvent {
   @override
   _$$_RecorderEventCopyWith<_$_RecorderEvent> get copyWith =>
       __$$_RecorderEventCopyWithImpl<_$_RecorderEvent>(this, _$identity);
+
+  @override
+  Map<String, dynamic> toJson() {
+    return _$$_RecorderEventToJson(this);
+  }
 }
 
 abstract class _RecorderEvent implements RecorderEvent {
   const factory _RecorderEvent(
       {required final Duration duration,
       required final Event event}) = _$_RecorderEvent;
+
+  factory _RecorderEvent.fromJson(Map<String, dynamic> json) =
+      _$_RecorderEvent.fromJson;
 
   @override
   Duration get duration => throw _privateConstructorUsedError;
