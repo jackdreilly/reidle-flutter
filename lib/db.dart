@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/foundation.dart';
 
 class Submission {
   final String name;
@@ -57,9 +58,11 @@ extension UserName on User {
 
 class _Db {
   static final firestore = FirebaseFirestore.instance;
-  static final collection = firestore.collection('submissions').withConverter<Submission>(
-      fromFirestore: (x, _) => Submission.fromFirestore(x.data() ?? {}),
-      toFirestore: (x, _) => x.toFirestore);
+  static final collection = firestore
+      .collection(kDebugMode ? 'submissions-test' : 'submissions')
+      .withConverter<Submission>(
+          fromFirestore: (x, _) => Submission.fromFirestore(x.data() ?? {}),
+          toFirestore: (x, _) => x.toFirestore);
 
   CollectionReference<Submission> get submissions => collection;
 

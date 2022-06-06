@@ -10,6 +10,7 @@ import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import 'package:reidle/choose_word.dart';
+import 'package:reidle/recorder.dart';
 import 'package:reidle/wordle.dart';
 
 import 'db.dart';
@@ -94,11 +95,16 @@ class ReidleProvider extends ChangeNotifier {
         usernameSubmit();
       }
     });
+    controller.addListener(() {
+      recorder.add(Event.letter(controller.text.substring(controller.text.length - 1)));
+      print(recorder.events.join('\n'));
+    });
   }
 
   bool get isRunning => timerProvider.timer != null;
 
   final focus = FocusNode();
+  final recorder = Recorder();
   final controller = TextEditingController();
 
   Duration get duration =>
@@ -110,6 +116,7 @@ class ReidleProvider extends ChangeNotifier {
   }
 
   void start() {
+    recorder.start();
     _startTime = DateTime.now();
     _endTime = null;
     timerProvider.penalty = const Duration(seconds: 0);
@@ -141,7 +148,9 @@ class ReidleProvider extends ChangeNotifier {
     void snack(String s, [int? penalty]) {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(s)));
       if (penalty != null) {
-        timerProvider.penalty += Duration(seconds: penalty);
+        final duration = Duration(seconds: penalty);
+        recorder.add(Event.penalty(duration));
+        timerProvider.penalty += duration;
         notifyListeners();
       }
     }
@@ -154,6 +163,7 @@ class ReidleProvider extends ChangeNotifier {
     if (!dictionary.isValid(controller.text)) return snack('Not a word', 5);
 
     FirebaseAnalytics.instance.logEvent(name: "guess", parameters: {'guess': s});
+    recorder.add(const Event.enter());
     guesses.add(s);
     final score = scoreWordle(theAnswer, guesses);
     final checker = checkWordle(theAnswer, score);
