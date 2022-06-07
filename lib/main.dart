@@ -159,6 +159,7 @@ class ReidleProvider extends ChangeNotifier {
         penalty: timerProvider.penalty,
         uid: FirebaseAuth.instance.currentUser?.uid,
         events: recorder.events,
+        answer: theAnswer,
       );
       if (isReal) {
         created = db.submissions.add(finalSubmission!);
@@ -287,6 +288,21 @@ class PracticeButton extends StatelessWidget {
   }
 }
 
+class HistoryButton extends StatelessWidget {
+  const HistoryButton({
+    Key? key,
+  }) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return FloatingActionButton(
+      heroTag: "practice",
+      onPressed: () => pushHistory(context),
+      child: const Icon(Icons.history),
+    );
+  }
+}
+
 class MyNameWidget extends StatelessWidget {
   const MyNameWidget({Key? key}) : super(key: key);
 
@@ -302,7 +318,7 @@ class MyNameWidget extends StatelessWidget {
 
 void pushPractice(BuildContext context) {
   Navigator.of(context).push(MaterialPageRoute(
-      builder: (_) => GameWidget(game: Game(dict, dict.randomWord(), dict.randomAnswer(), false))));
+      builder: (_) => GameWidget(game: Game(dict, dict.randomWord, dict.randomAnswer, false))));
 }
 
 class HomeButton extends StatelessWidget {
@@ -377,6 +393,8 @@ class GameFloatingActionButton extends StatelessWidget {
       return Column(
         mainAxisSize: MainAxisSize.min,
         children: const [
+          HistoryButton(),
+          SizedBox(height: 16),
           PracticeButton(),
           SizedBox(height: 16),
           UndoButton(),
@@ -422,10 +440,34 @@ class ReidleDrawer extends StatelessWidget {
             title: const Text('History'),
             onTap: () {
               Navigator.of(context).pop();
-              Navigator.of(context).push(MaterialPageRoute(builder: (_) => const HistoryPage()));
-            })
+              pushHistory(context);
+            }),
       ]);
     }));
+  }
+}
+
+void pushHistory(BuildContext context) =>
+    Navigator.of(context).push(MaterialPageRoute(builder: (_) => const HistoryPage()));
+
+class PlaybackPage extends StatelessWidget {
+  final Submission? submission;
+  const PlaybackPage({this.submission, super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final submission =
+        this.submission ?? Provider.of<Submissions>(context).currentWinner?.submission;
+    return Scaffold(
+        appBar: AppBar(
+          title: const Text("Playback"),
+        ),
+        drawer: const ReidleDrawer(),
+        body: Center(
+          child: submission?.events?.isEmpty ?? true
+              ? const Text("loading")
+              : PlaybackWidget(submission!),
+        ));
   }
 }
 
@@ -445,7 +487,7 @@ class HistoryPage extends StatelessWidget {
             )),
         drawer: const ReidleDrawer(),
         body: TabBarView(
-            children: [
+            children: const [
           HistoryDataTable(),
           LeaderboardDataTable(),
         ].map((e) => SingleChildScrollView(child: e)).toList()),
@@ -510,60 +552,76 @@ void submissionSnackbar(BuildContext context, Submission submission, [String? to
       content: Text([submission.error ?? 'Win', todaysAnswer].where((x) => x != null).join(': '))));
 }
 
-class PlaybackWidget extends StatefulWidget {
-  final List<RecorderEvent> playback;
-  final Game game;
-  const PlaybackWidget(this.playback, this.game, {Key? key}) : super(key: key);
+enum PlaybackStatus { normal, penalty, done }
 
-  @override
-  State<PlaybackWidget> createState() => _PlaybackWidgetState();
+extension on PlaybackStatus {
+  Color get color =>
+      {
+        PlaybackStatus.normal: Colors.white,
+        PlaybackStatus.penalty: Colors.red.shade300,
+        PlaybackStatus.done: Colors.green.shade100,
+      }[this] ??
+      Colors.white;
 }
 
-class _PlaybackWidgetState extends State<PlaybackWidget> {
+class PlaybackState {
+  final List<String> guesses;
+  final PlaybackStatus status;
+
+  Color get color => status.color;
+
+  PlaybackState(List<String> guesses, this.status) : guesses = List.from(guesses);
+}
+
+Stream<PlaybackState> playbackStream(List<RecorderEvent> events) async* {
+  const maxSleepValue = Duration(milliseconds: 300);
+  Future<dynamic> maxSleep(Duration duration) =>
+      Future.delayed(duration < maxSleepValue ? duration : maxSleepValue);
   final List<String> guesses = [""];
-  RecorderEvent? event;
-  @override
-  void initState() {
-    super.initState();
-    bump(widget.playback.iterator);
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Card(
-        color: event?.event.when(
-                word: (_) => Colors.white,
-                enter: () => Colors.green.shade100,
-                penalty: (_) => Colors.red.shade300) ??
-            Colors.white,
-        child: Padding(
-          padding: const EdgeInsets.all(12.0),
-          child: WordleWidget(widget.game.theAnswer, guesses),
-        ));
-  }
-
-  void bump(Iterator<RecorderEvent> iterator) {
-    if (!iterator.moveNext()) {
-      return;
-    }
-    final value = iterator.current;
-    Future.delayed(value.duration, () {
-      setState(() {
-        event = value;
-        value.event.whenOrNull(
-            word: (word) {
-              guesses.removeLast();
-              guesses.add(word.padRight(5, ' ').truncate(5));
-            },
-            enter: () => guesses.add(""));
-      });
-      bump(iterator);
-    });
+  for (final event in events) {
+    await maxSleep(event.duration);
+    yield* event.event.whenOrNull(
+          word: (w) async* {
+            if (w == guesses.last) {
+              return;
+            }
+            yield PlaybackState(
+                guesses
+                  ..removeLast()
+                  ..add(w),
+                PlaybackStatus.normal);
+          },
+          penalty: (duration) async* {
+            yield PlaybackState(guesses, PlaybackStatus.penalty);
+            await maxSleep(duration);
+          },
+          enter: () async* {
+            yield PlaybackState(guesses..add(""), PlaybackStatus.normal);
+          },
+        ) ??
+        const Stream.empty();
   }
 }
 
-extension on String {
-  String truncate(int length) => length < this.length ? substring(0, length) : this;
+class PlaybackWidget extends StatelessWidget {
+  final Submission submission;
+  const PlaybackWidget(this.submission, {Key? key}) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) => StreamProvider<PlaybackState>(
+        create: (context) => playbackStream(submission.events ?? []),
+        initialData: PlaybackState([""], PlaybackStatus.normal),
+        builder: (context, _) {
+          final state = Provider.of<PlaybackState>(context);
+          final answer = submission.answer ?? dict.answerForDate(submission.submissionTime);
+          return Card(
+              color: scoreWordle(answer, state.guesses).won ? Colors.green.shade200 : state.color,
+              child: Padding(
+                padding: const EdgeInsets.all(12.0),
+                child: WordleWidget(answer, state.guesses),
+              ));
+        },
+      );
 }
 
 class LeaderboardDataTable extends StatelessWidget {
@@ -595,6 +653,7 @@ class HistoryDataTable extends StatelessWidget {
     return DataTable(
         columnSpacing: 20,
         columns: [
+          'watch',
           'name',
           'date',
           'time',
@@ -619,6 +678,16 @@ class HistoryDataTable extends StatelessWidget {
                               ? Colors.yellow.shade100
                               : Colors.white),
                   cells: [
+                    DataCell(
+                        e.submission.events?.isEmpty ?? true
+                            ? Container()
+                            : const Icon(Icons.play_arrow),
+                        onTap: e.submission.events?.isEmpty ?? true
+                            ? null
+                            : () => Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                    builder: (context) => PlaybackPage(submission: e.submission)))),
                     DataCell(
                         Text(e.submission.name.substring(0, min(e.submission.name.length, 7)))),
                     DataCell(Text(e.submission.submissionTime.dateString,

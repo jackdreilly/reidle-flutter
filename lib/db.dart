@@ -12,6 +12,7 @@ class Submission {
   final Duration? penalty;
   final String? uid;
   final List<RecorderEvent>? events;
+  final String? answer;
 
   bool get won {
     return (error?.length ?? 0) == 0 && (paste?.trimRight().endsWith("🟩🟩🟩🟩🟩") ?? false);
@@ -26,6 +27,7 @@ class Submission {
     this.penalty,
     this.uid,
     this.events,
+    this.answer,
   });
 
   factory Submission.fromFirestore(Map<String, dynamic> json) => Submission(
@@ -39,6 +41,7 @@ class Submission {
         events: (json['events'] as List<dynamic>?)
             ?.map((e) => RecorderEvent.fromJson(e as Map<String, dynamic>))
             .toList(),
+        answer: json['answer'] as String?,
       );
 
   Map<String, dynamic> get toFirestore => {
@@ -50,6 +53,7 @@ class Submission {
         'penalty': penalty?.inMicroseconds ?? 0,
         'uid': uid,
         'events': events?.map((e) => _patch(e.toJson())).toList(),
+        'answer': answer,
       };
 }
 

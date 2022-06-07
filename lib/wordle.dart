@@ -42,8 +42,19 @@ extension ClassWordsExtension on ClassWords {
   String get paste => map((w) => w.map((l) => l.paste).join()).join('\n');
 }
 
-ClassWords scoreWordle(String word, List<String> guesses) {
-  return guesses.map((g) => _score(word, g)).toList();
+ClassWords scoreWordle(String word, List<String> guesses) => guesses
+    .map((e) {
+      if (e.length > 5) {
+        return e.substring(0, 5);
+      }
+      return e.padRight(5, " ");
+    })
+    .toList()
+    .map((g) => _score(word, g))
+    .toList();
+
+extension X on ClassWords {
+  bool get won => isEmpty ? false : last.every((element) => element.cls == Class.right);
 }
 
 ClassWord _score(String word, String guess) {
