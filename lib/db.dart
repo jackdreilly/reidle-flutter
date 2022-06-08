@@ -119,6 +119,9 @@ class Submissions {
   List<PreviousRecord> get previous => submissions
           .where((s) => s.isWinner)
           .where((s) => s.submission.submissionTime.reidleWeek != DateTime.now().reidleWeek)
+          .where((s) =>
+              s.submission.submissionTime.reidleWeek !=
+              submissions.map((e) => e.submission.submissionTime.reidleWeek).maxBy((p0) => -p0))
           .groupBy((t) => t.submission.submissionTime.reidleWeek)
           .map((weekPair) {
         final winner = weekPair.value
