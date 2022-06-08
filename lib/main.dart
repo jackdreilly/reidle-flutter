@@ -160,6 +160,7 @@ class ReidleProvider extends ChangeNotifier {
         uid: FirebaseAuth.instance.currentUser?.uid,
         events: recorder.events,
         answer: theAnswer,
+        guesses: List.from(guesses),
       );
       if (isReal) {
         created = db.submissions.add(finalSubmission!);
@@ -195,18 +196,7 @@ void main() async {
             value: FirebaseAuth.instance.userChanges(),
             initialData: FirebaseAuth.instance.currentUser)
       ],
-      child: MaterialApp(
-        home: MultiProvider(
-          providers: [
-            StreamProvider<Submissions>.value(
-                value: db.submissionsStream, initialData: Submissions([])),
-            StreamProvider<User?>.value(
-                value: FirebaseAuth.instance.userChanges(),
-                initialData: FirebaseAuth.instance.currentUser)
-          ],
-          child: const Home(),
-        ),
-      ),
+      child: const MaterialApp(home: Home()),
     ),
   );
 }
@@ -224,8 +214,23 @@ class TimerWidget extends StatelessWidget {
   }
 }
 
-class Home extends StatelessWidget {
+class Home extends StatefulWidget {
   const Home({Key? key}) : super(key: key);
+
+  @override
+  State<Home> createState() => _HomeState();
+}
+
+class _HomeState extends State<Home> {
+  @override
+  void initState() {
+    super.initState();
+    final subscription = db.submissionsStream
+        .where((event) => event.alreadyPlayed)
+        .take(1)
+        .listen((_) => pushHistory(context));
+    Future.delayed(const Duration(seconds: 3), () => subscription.cancel());
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -259,15 +264,17 @@ class PlayButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final hasName = Provider.of<User?>(context)?.displayName?.isNotEmpty ?? false;
+    final alreadyPlayed = Provider.of<Submissions>(context).alreadyPlayed;
+    final canPlay = hasName && !alreadyPlayed;
     return FloatingActionButton(
       heroTag: "play",
-      backgroundColor: hasName ? null : Colors.grey,
-      onPressed: () => hasName
+      backgroundColor: canPlay ? null : Colors.grey,
+      onPressed: () => canPlay
           ? Navigator.of(context).push(MaterialPageRoute(
               builder: (_) =>
                   GameWidget(game: Game(dict, dict.todaysWord, dict.todaysAnswer, true))))
-          : ScaffoldMessenger.of(context)
-              .showSnackBar(const SnackBar(content: Text("Must set name"))),
+          : ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text(alreadyPlayed ? "Already played today" : "Must set name"))),
       child: const Icon(Icons.play_arrow),
     );
   }
@@ -538,6 +545,7 @@ extension D on DateTime {
 }
 
 extension<T> on Iterable<T> {
+  T? get firstOrNull => isEmpty ? null : first;
   Iterable<T> separate<S extends T>(S w) sync* {
     if (isNotEmpty) yield first;
     for (final e in skip(1)) {
@@ -571,14 +579,18 @@ class PlaybackState {
   Color get color => status.color;
 
   PlaybackState(List<String> guesses, this.status) : guesses = List.from(guesses);
+
+  factory PlaybackState.initial(Submission submission) => PlaybackState(
+      [submission.guesses?.firstOrNull ?? dict.wordForDate(submission.submissionTime), ""],
+      PlaybackStatus.normal);
 }
 
-Stream<PlaybackState> playbackStream(List<RecorderEvent> events) async* {
+Stream<PlaybackState> playbackStream(Submission submission) async* {
   const maxSleepValue = Duration(milliseconds: 300);
   Future<dynamic> maxSleep(Duration duration) =>
       Future.delayed(duration < maxSleepValue ? duration : maxSleepValue);
-  final List<String> guesses = [""];
-  for (final event in events) {
+  final guesses = PlaybackState.initial(submission).guesses.toList();
+  for (final event in submission.events ?? []) {
     await maxSleep(event.duration);
     yield* event.event.whenOrNull(
           word: (w) async* {
@@ -609,8 +621,8 @@ class PlaybackWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => StreamProvider<PlaybackState>(
-        create: (context) => playbackStream(submission.events ?? []),
-        initialData: PlaybackState([""], PlaybackStatus.normal),
+        create: (context) => playbackStream(submission),
+        initialData: PlaybackState.initial(submission),
         builder: (context, _) {
           final state = Provider.of<PlaybackState>(context);
           final answer = submission.answer ?? dict.answerForDate(submission.submissionTime);

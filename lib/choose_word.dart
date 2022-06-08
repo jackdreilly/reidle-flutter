@@ -20,6 +20,7 @@ class Dictionary {
 
   bool isValid(String word) => wordsSet.contains(word);
   String answerForDate(DateTime submissionTime) => answers.grab(submissionTime);
+  String wordForDate(DateTime submissionTime) => words.grab(submissionTime);
   String get todaysAnswer => answerForDate(DateTime.now());
   String get todaysWord => words.grab(DateTime.now());
 }

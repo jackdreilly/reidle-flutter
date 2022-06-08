@@ -13,6 +13,7 @@ class Submission {
   final String? uid;
   final List<RecorderEvent>? events;
   final String? answer;
+  final List<String>? guesses;
 
   bool get won {
     return (error?.length ?? 0) == 0 && (paste?.trimRight().endsWith("🟩🟩🟩🟩🟩") ?? false);
@@ -28,6 +29,7 @@ class Submission {
     this.uid,
     this.events,
     this.answer,
+    this.guesses,
   });
 
   factory Submission.fromFirestore(Map<String, dynamic> json) => Submission(
@@ -42,6 +44,7 @@ class Submission {
             ?.map((e) => RecorderEvent.fromJson(e as Map<String, dynamic>))
             .toList(),
         answer: json['answer'] as String?,
+        guesses: json.containsKey('guesses') ? List<String>.from(json['guesses']) : null,
       );
 
   Map<String, dynamic> get toFirestore => {
@@ -54,6 +57,7 @@ class Submission {
         'uid': uid,
         'events': events?.map((e) => _patch(e.toJson())).toList(),
         'answer': answer,
+        'guesses': guesses,
       };
 }
 
@@ -99,7 +103,8 @@ class _Db {
                           x.data().won &&
                           x.data().submissionTime.dateHash == y.data().submissionTime.dateHash)
                       .every((element) => element.data().time >= y.data().time)))
-          .toList()));
+          .toList()))
+      .asBroadcastStream();
 }
 
 class Submissions {
@@ -119,6 +124,8 @@ class Submissions {
     ..sort((a, b) => a.value > b.value ? -1 : 1);
 
   Duration? get bestTime => currentWinner?.submission.time;
+
+  bool get alreadyPlayed => submissions.any((element) => element.isMe && element.isToday);
 }
 
 class StreamSubmission {
@@ -128,6 +135,10 @@ class StreamSubmission {
   StreamSubmission(this.submission, this.isWinner);
 
   bool get isToday => submission.submissionTime.isToday;
+
+  bool get isMe =>
+      submission.uid == FirebaseAuth.instance.currentUser?.uid &&
+      (submission.uid?.isNotEmpty ?? false);
 }
 
 final db = _Db();
