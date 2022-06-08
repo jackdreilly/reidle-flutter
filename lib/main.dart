@@ -235,7 +235,9 @@ class _HomeState extends State<Home> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-        appBar: AppBar(title: Text("Reidle", style: GoogleFonts.robotoMono())),
+        appBar: AppBar(
+            title: Text("Reidle Week ${DateTime.now().reidleWeek} Day ${DateTime.now().reidleDay}",
+                style: GoogleFonts.robotoMono())),
         drawer: const ReidleDrawer(),
         floatingActionButtonLocation: FloatingActionButtonLocation.startFloat,
         floatingActionButton: Column(
@@ -303,9 +305,9 @@ class HistoryButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return FloatingActionButton(
-      heroTag: "practice",
+      heroTag: "history",
       onPressed: () => pushHistory(context),
-      child: const Icon(Icons.history),
+      child: const Icon(Icons.leaderboard),
     );
   }
 }
@@ -439,17 +441,29 @@ class ReidleDrawer extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Drawer(child: Builder(builder: (context) {
-      return ListView(children: [
+      return ListView(
+          children: ListTile.divideTiles(context: context, tiles: [
+        Center(
+          child: Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: Text(
+              "Reidle",
+              style: GoogleFonts.roboto(fontSize: 30),
+            ),
+          ),
+        ),
         ListTile(
+            leading: const Icon(Icons.home),
             title: const Text("Home"),
             onTap: () => Navigator.of(context).popUntil((route) => route.isFirst)),
         ListTile(
-            title: const Text('History'),
+            leading: const Icon(Icons.leaderboard),
+            title: const Text('Board'),
             onTap: () {
               Navigator.of(context).pop();
               pushHistory(context);
             }),
-      ]);
+      ]).toList());
     }));
   }
 }
@@ -484,19 +498,24 @@ class HistoryPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return DefaultTabController(
-      length: 2,
+      length: 3,
       child: Scaffold(
         appBar: AppBar(
-            title: const Text("History"),
+            title: const Text("Board"),
             actions: const [HomeButton()],
-            bottom: const TabBar(
-              tabs: [Text("History"), Text("Leaderboard")],
-            )),
+            bottom: TabBar(
+                tabs: ["All", "This Week", "History"]
+                    .map((x) => Padding(
+                          padding: const EdgeInsets.all(8.0),
+                          child: Text(x),
+                        ))
+                    .toList())),
         drawer: const ReidleDrawer(),
         body: TabBarView(
             children: const [
           HistoryDataTable(),
-          LeaderboardDataTable(),
+          ThisWeekDataTable(),
+          PreviousDataTable(),
         ].map((e) => SingleChildScrollView(child: e)).toList()),
       ),
     );
@@ -538,10 +557,6 @@ class WordleGameWidget extends StatelessWidget {
       ),
     );
   }
-}
-
-extension D on DateTime {
-  String get dateString => '$month/$day';
 }
 
 extension<T> on Iterable<T> {
@@ -636,21 +651,45 @@ class PlaybackWidget extends StatelessWidget {
       );
 }
 
-class LeaderboardDataTable extends StatelessWidget {
-  const LeaderboardDataTable({Key? key}) : super(key: key);
+class ThisWeekDataTable extends StatelessWidget {
+  const ThisWeekDataTable({Key? key}) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return DataTable(
+        columns: ['name', 'wins', 'time'].map((s) => DataColumn(label: Text(s))).toList(),
+        rows: Provider.of<Submissions>(context)
+            .thisWeek
+            .map(
+              (e) => DataRow(cells: [
+                DataCell(Text(e.key)),
+                DataCell(Text(e.value.key.toString())),
+                DataCell(Text(Duration(microseconds: e.value.value.toInt()).stopwatchString))
+              ], color: e.key.isMyName ? MaterialStateProperty.all(Colors.yellow.shade200) : null),
+            )
+            .toList());
+  }
+}
+
+class PreviousDataTable extends StatelessWidget {
+  const PreviousDataTable({Key? key}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
     return DataTable(
         columns: [
+          'week',
           'name',
           'wins',
+          'time',
         ].map((s) => DataColumn(label: Text(s))).toList(),
         rows: Provider.of<Submissions>(context)
-            .leaderboard
+            .previous
             .map((e) => DataRow(
-                  cells: [DataCell(Text(e.key)), DataCell(Text(e.value.toString()))],
-                ))
+                color: e.name.isMyName ? MaterialStateProperty.all(Colors.yellow.shade200) : null,
+                cells: [e.week, e.name, e.wins, e.duration.stopwatchString]
+                    .map((x) => DataCell(Text(x.toString())))
+                    .toList()))
             .toList());
   }
 }
@@ -674,9 +713,8 @@ class HistoryDataTable extends StatelessWidget {
         ].map((s) => DataColumn(label: Text(s))).toList(),
         rows: Provider.of<Submissions>(context)
             .submissions
-            .where((e) =>
-                DateTime.now().toUtc().difference(e.submission.submissionTime) <
-                const Duration(days: 10))
+            .where((s) => s.submission.submissionTime
+                .isAfter(DateTime.now().subtract(const Duration(days: 40))))
             .map((e) => DataRow(
                   onLongPress: e.submission.error?.isNotEmpty ?? false
                       ? () => submissionSnackbar(context, e.submission)
@@ -685,8 +723,7 @@ class HistoryDataTable extends StatelessWidget {
                       ? Colors.green.shade100
                       : !e.submission.won
                           ? Colors.red.shade100
-                          : e.submission.name.toLowerCase().trim() ==
-                                  FirebaseAuth.instance.currentUser?.name.toLowerCase().trim()
+                          : e.isMe
                               ? Colors.yellow.shade100
                               : Colors.white),
                   cells: [

@@ -116,16 +116,47 @@ class Submissions {
 
   List<RecorderEvent>? get playback => currentWinner?.submission.events;
 
-  List<MapEntry<String, int>> get leaderboard => submissions
+  List<PreviousRecord> get previous => submissions
+          .where((s) => s.isWinner)
+          .where((s) => s.submission.submissionTime.reidleWeek != DateTime.now().reidleWeek)
+          .groupBy((t) => t.submission.submissionTime.reidleWeek)
+          .map((weekPair) {
+        final winner = weekPair.value
+            .groupBy((t) => t.submission.name.toLowerCase().trim().replaceAll(' ', ''))
+            .map((x) => MapEntry(x.key, <Comparable>[
+                  x.value.length,
+                  -1 * x.value.sum((x) => x.submission.time.inMicroseconds),
+                ]))
+            .maxBy((x) => CompareList(x.value))!;
+        return PreviousRecord(weekPair.key, winner.key, winner.value[0] as int,
+            Duration(microseconds: (-1 * (winner.value[1] as num)).toInt()));
+      }).toList()
+        ..sort(((a, b) => b.week.compareTo(a.week)));
+
+  List<MapEntry<String, MapEntry<int, num>>> get thisWeek => submissions
       .where((s) => s.isWinner)
+      .where((s) => s.submission.submissionTime.reidleWeek == DateTime.now().reidleWeek)
       .groupBy((t) => t.submission.name.toLowerCase().trim().replaceAll(' ', ''))
-      .map((e) => MapEntry(e.key, e.value.length))
+      .map((e) => MapEntry(
+          e.key, MapEntry(e.value.length, e.value.sum((p0) => p0.submission.time.inMicroseconds))))
       .toList()
-    ..sort((a, b) => a.value > b.value ? -1 : 1);
+    ..sort((a, b) {
+      final x = [a, b].map((x) => CompareList([-x.value.key, x.value.value])).toList();
+      return x.first.compareTo(x.last);
+    });
 
   Duration? get bestTime => currentWinner?.submission.time;
 
   bool get alreadyPlayed => submissions.any((element) => element.isMe && element.isToday);
+}
+
+class PreviousRecord {
+  final int week;
+  final String name;
+  final int wins;
+  final Duration duration;
+
+  PreviousRecord(this.week, this.name, this.wins, this.duration);
 }
 
 class StreamSubmission {
@@ -137,18 +168,52 @@ class StreamSubmission {
   bool get isToday => submission.submissionTime.isToday;
 
   bool get isMe =>
-      submission.uid == FirebaseAuth.instance.currentUser?.uid &&
+      (submission.uid == FirebaseAuth.instance.currentUser?.uid || submission.name.isMyName) &&
       (submission.uid?.isNotEmpty ?? false);
 }
 
 final db = _Db();
 
-extension _D on DateTime {
+extension D on DateTime {
   bool get isToday => DateTime.now().toUtc().dateHash == toUtc().dateHash;
   int get dateHash => [year, month, day].join('').hashCode;
+  String get dateString => '$month/$day';
+  static final epoch = DateTime(2022, 4, 4);
+  int get reidleWeek => difference(epoch).inDays ~/ 7;
+  int get reidleDay => difference(epoch).inDays % 7 + 1;
+}
+
+class CompareList implements Comparable<CompareList> {
+  final List<Comparable> list;
+  CompareList(this.list);
+
+  @override
+  int compareTo(CompareList other) {
+    for (final x in list.zip(other.list)) {
+      final c = x.key.compareTo(x.value);
+      if (c != 0) {
+        return c;
+      }
+    }
+    return 0;
+  }
 }
 
 extension<T> on Iterable<T> {
+  num sum(num Function(T) f) => fold(0, (a, b) => a + f(b));
+  T? maxBy(Comparable Function(T) key) =>
+      isEmpty ? null : zip(map(key)).reduce((a, b) => a.value.compareTo(b.value) > 0 ? a : b).key;
+
+  Iterable<MapEntry<T, S>> zip<S>(Iterable<S> other) sync* {
+    final iterator = other.iterator;
+    for (var e in this) {
+      if (!iterator.moveNext()) {
+        return;
+      }
+      yield MapEntry(e, iterator.current);
+    }
+  }
+
   T? get firstOrNull => isEmpty ? null : first;
 
   Iterable<MapEntry<K, List<T>>> groupBy<K>(K Function(T t) grouper) {
@@ -162,4 +227,9 @@ extension<T> on Iterable<T> {
     }
     return map.entries;
   }
+}
+
+extension S on String {
+  String get normalized => toLowerCase().trim().replaceAll(' ', '');
+  bool get isMyName => normalized == FirebaseAuth.instance.currentUser?.name.normalized;
 }
