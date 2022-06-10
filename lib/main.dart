@@ -145,6 +145,9 @@ class ReidleProvider extends ChangeNotifier {
     if (!dictionary.isValid(controller.text)) return snack('Not a word', 5);
 
     FirebaseAnalytics.instance.logEvent(name: "guess", parameters: {'guess': s});
+    if (guesses.contains(s)) {
+      return;
+    }
     guesses.add(s);
     final score = scoreWordle(theAnswer, guesses);
     final checker = checkWordle(theAnswer, score);
