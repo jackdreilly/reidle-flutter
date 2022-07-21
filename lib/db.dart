@@ -94,16 +94,17 @@ class _Db {
           isGreaterThan:
               DateTime.now().toUtc().subtract(const Duration(days: 30)).toIso8601String())
       .snapshots()
-      .map((x) => Submissions(x.docs
-          .map((y) => StreamSubmission(
-              y.data(),
-              y.data().won &&
-                  x.docs
-                      .where((x) =>
-                          x.data().won &&
-                          x.data().submissionTime.dateHash == y.data().submissionTime.dateHash)
-                      .every((element) => element.data().time >= y.data().time)))
-          .toList()))
+      .map((x) {
+        final winners = x.docs
+            .where((d) => d.data().won)
+            .groupBy((doc) => doc.data().submissionTime.dateHash)
+            .map((e) => e.value.maxBy((p0) => -p0.data().time)!)
+            .map((e) => e.id)
+            .toSet();
+        return Submissions(x.docs
+            .map((y) => StreamSubmission(y.data(), winners.contains(y.id)))
+            .toList());
+      })
       .asBroadcastStream();
 }
 
