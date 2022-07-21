@@ -200,7 +200,8 @@ Checked checkWordle(String word, ClassWords guesses) {
   Set<String> misses = {};
   Set<String> offs = {};
   Set<int> ons = {};
-  Map<String, int> maxRights = {};
+  Map<String, int> minRights = {};
+  final maxRights = <String, int>{};
   int rights = 0;
   for (var guess in guesses) {
     final newRights = guess.where((l) => l.cls != Class.miss).length;
@@ -229,7 +230,7 @@ Checked checkWordle(String word, ClassWords guesses) {
         offs.add(hash);
       }
     }
-    for (var off in maxRights.entries) {
+    for (var off in minRights.entries) {
       final letter = off.key;
       final count = off.value;
       final present = guess.where((g) => g.letter == letter).length;
@@ -238,10 +239,22 @@ Checked checkWordle(String word, ClassWords guesses) {
       }
     }
     misses.addAll(guess.map((e) => e.letter).where((l) => !word.contains(l)));
-    maxRights = Map.fromEntries(guess
+    minRights = Map.fromEntries(guess
         .where((element) => element.cls != Class.miss)
         .groupBy((t) => t.letter)
         .map((e) => MapEntry(e.key, e.value.length)));
+    for (var element in guess.groupBy((t) => t.letter)) {
+      if (element.value.length > (maxRights[element.key] ?? 7)) {
+        final count = maxRights[element.key] ?? 7;
+        return Checked(false,
+            '"${element.key}" is present at most $count time${count > 1 ? 's' : ''}');
+      }
+      if (element.value.any((element) => element.cls == Class.miss)) {
+        maxRights[element.key] = element.value
+            .where((x) => [Class.right, Class.off].contains(x.cls))
+            .length;
+      }
+    }
   }
   return const Checked(false, null);
 }

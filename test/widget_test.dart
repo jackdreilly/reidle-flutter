@@ -6,7 +6,13 @@
 // tree, read text, and verify that the values of widget properties are correct.
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:reidle/wordle.dart';
 
 void main() {
-  testWidgets('Counter increments smoke test', (WidgetTester tester) async {});
+  testWidgets('Example fails', (WidgetTester tester) async {
+    expect(
+        checkWordle("motif", scoreWordle("motif", ["altho", 'potty', 'totem']))
+            .error,
+        '"t" is present at most 1 time');
+  });
 }
