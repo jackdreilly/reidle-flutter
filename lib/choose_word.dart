@@ -3,7 +3,8 @@ import 'dart:math';
 import 'package:flutter/services.dart';
 
 extension _D on DateTime {
-  int get dateHash => [year, month, day].join('').hashCode;
+  int get dateHash =>
+      isUtc ? [year, month, day].join('').hashCode : toUtc().dateHash;
 }
 
 class Dictionary {
