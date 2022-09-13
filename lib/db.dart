@@ -16,7 +16,8 @@ class Submission {
   final List<String>? guesses;
 
   bool get won {
-    return (error?.length ?? 0) == 0 && (paste?.trimRight().endsWith("🟩🟩🟩🟩🟩") ?? false);
+    return (error?.length ?? 0) == 0 &&
+        (paste?.trimRight().endsWith("🟩🟩🟩🟩🟩") ?? false);
   }
 
   Submission({
@@ -44,7 +45,9 @@ class Submission {
             ?.map((e) => RecorderEvent.fromJson(e as Map<String, dynamic>))
             .toList(),
         answer: json['answer'] as String?,
-        guesses: json.containsKey('guesses') ? List<String>.from(json['guesses']) : null,
+        guesses: json.containsKey('guesses')
+            ? List<String>.from(json['guesses'])
+            : null,
       );
 
   Map<String, dynamic> get toFirestore => {
@@ -91,21 +94,22 @@ class _Db {
   final submissionsStream = collection
       .orderBy('submissionTime', descending: true)
       .where('submissionTime',
-          isGreaterThan:
-              DateTime.now().toUtc().subtract(const Duration(days: 30)).toIso8601String())
+          isGreaterThan: DateTime.now()
+              .toUtc()
+              .subtract(const Duration(days: 30))
+              .toIso8601String())
       .snapshots()
       .map((x) {
-        final winners = x.docs
-            .where((d) => d.data().won)
-            .groupBy((doc) => doc.data().submissionTime.dateHash)
-            .map((e) => e.value.maxBy((p0) => -p0.data().time)!)
-            .map((e) => e.id)
-            .toSet();
-        return Submissions(x.docs
-            .map((y) => StreamSubmission(y.data(), winners.contains(y.id)))
-            .toList());
-      })
-      .asBroadcastStream();
+    final winners = x.docs
+        .where((d) => d.data().won)
+        .groupBy((doc) => doc.data().submissionTime.dateHash)
+        .map((e) => e.value.maxBy((p0) => -p0.data().time)!)
+        .map((e) => e.id)
+        .toSet();
+    return Submissions(x.docs
+        .map((y) => StreamSubmission(y.data(), winners.contains(y.id)))
+        .toList());
+  }).asBroadcastStream();
 }
 
 class Submissions {
@@ -119,14 +123,19 @@ class Submissions {
 
   List<PreviousRecord> get previous => submissions
           .where((s) => s.isWinner)
-          .where((s) => s.submission.submissionTime.reidleWeek != DateTime.now().reidleWeek)
           .where((s) =>
               s.submission.submissionTime.reidleWeek !=
-              submissions.map((e) => e.submission.submissionTime.reidleWeek).maxBy((p0) => -p0))
+              DateTime.now().reidleWeek)
+          .where((s) =>
+              s.submission.submissionTime.reidleWeek !=
+              submissions
+                  .map((e) => e.submission.submissionTime.reidleWeek)
+                  .maxBy((p0) => -p0))
           .groupBy((t) => t.submission.submissionTime.reidleWeek)
           .map((weekPair) {
         final winner = weekPair.value
-            .groupBy((t) => t.submission.name.toLowerCase().trim().replaceAll(' ', ''))
+            .groupBy((t) =>
+                t.submission.name.toLowerCase().trim().replaceAll(' ', ''))
             .map((x) => MapEntry(x.key, <Comparable>[
                   x.value.length,
                   -1 * x.value.sum((x) => x.submission.time.inMicroseconds),
@@ -139,19 +148,26 @@ class Submissions {
 
   List<MapEntry<String, MapEntry<int, num>>> get thisWeek => submissions
       .where((s) => s.isWinner)
-      .where((s) => s.submission.submissionTime.reidleWeek == DateTime.now().reidleWeek)
-      .groupBy((t) => t.submission.name.toLowerCase().trim().replaceAll(' ', ''))
+      .where((s) =>
+          s.submission.submissionTime.reidleWeek == DateTime.now().reidleWeek)
+      .groupBy(
+          (t) => t.submission.name.toLowerCase().trim().replaceAll(' ', ''))
       .map((e) => MapEntry(
-          e.key, MapEntry(e.value.length, e.value.sum((p0) => p0.submission.time.inMicroseconds))))
+          e.key,
+          MapEntry(e.value.length,
+              e.value.sum((p0) => p0.submission.time.inMicroseconds))))
       .toList()
     ..sort((a, b) {
-      final x = [a, b].map((x) => CompareList([-x.value.key, x.value.value])).toList();
+      final x = [a, b]
+          .map((x) => CompareList([-x.value.key, x.value.value]))
+          .toList();
       return x.first.compareTo(x.last);
     });
 
   Duration? get bestTime => currentWinner?.submission.time;
 
-  bool get alreadyPlayed => submissions.any((element) => element.isMe && element.isToday);
+  bool get alreadyPlayed =>
+      submissions.any((element) => element.isMe && element.isToday);
 }
 
 class PreviousRecord {
@@ -172,7 +188,8 @@ class StreamSubmission {
   bool get isToday => submission.submissionTime.isToday;
 
   bool get isMe =>
-      (submission.uid == FirebaseAuth.instance.currentUser?.uid || submission.name.isMyName) &&
+      (submission.uid == FirebaseAuth.instance.currentUser?.uid ||
+          submission.name.isMyName) &&
       (submission.uid?.isNotEmpty ?? false);
 }
 
@@ -205,8 +222,11 @@ class CompareList implements Comparable<CompareList> {
 
 extension<T> on Iterable<T> {
   num sum(num Function(T) f) => fold(0, (a, b) => a + f(b));
-  T? maxBy(Comparable Function(T) key) =>
-      isEmpty ? null : zip(map(key)).reduce((a, b) => a.value.compareTo(b.value) > 0 ? a : b).key;
+  T? maxBy(Comparable Function(T) key) => isEmpty
+      ? null
+      : zip(map(key))
+          .reduce((a, b) => a.value.compareTo(b.value) > 0 ? a : b)
+          .key;
 
   Iterable<MapEntry<T, S>> zip<S>(Iterable<S> other) sync* {
     final iterator = other.iterator;
@@ -235,5 +255,6 @@ extension<T> on Iterable<T> {
 
 extension S on String {
   String get normalized => toLowerCase().trim().replaceAll(' ', '');
-  bool get isMyName => normalized == FirebaseAuth.instance.currentUser?.name.normalized;
+  bool get isMyName =>
+      normalized == FirebaseAuth.instance.currentUser?.name.normalized;
 }
