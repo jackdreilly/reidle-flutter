@@ -226,23 +226,8 @@ class TimerWidget extends StatelessWidget {
   }
 }
 
-class Home extends StatefulWidget {
-  const Home({Key? key}) : super(key: key);
-
-  @override
-  State<Home> createState() => _HomeState();
-}
-
-class _HomeState extends State<Home> {
-  @override
-  void initState() {
-    super.initState();
-    final subscription = db.submissionsStream
-        .where((event) => event.alreadyPlayed)
-        .take(1)
-        .listen((_) => pushHistory(context));
-    Future.delayed(const Duration(seconds: 3), () => subscription.cancel());
-  }
+class Home extends StatelessWidget {
+  const Home({super.key});
 
   @override
   Widget build(BuildContext context) {
