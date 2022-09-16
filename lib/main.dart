@@ -143,7 +143,7 @@ class ReidleProvider extends ChangeNotifier {
       }
     }
 
-    if (FirebaseAuth.instance.currentUser?.displayName?.isEmpty ?? true) {
+    if (FirebaseAuth.instance.currentUser?.displayName?.isEmpty ?? true && isReal) {
       return snack("Must set name");
     }
     if (controller.text.isEmpty) return null;
@@ -261,6 +261,7 @@ class Home extends StatelessWidget {
                   child: Column(children: const [MyNameWidget()]),
                 ),
               ),
+              const PreviousWeekWinnerCalloutWidget(),
               Padding(
                 padding: const EdgeInsets.all(8.0),
                 child: Card(
@@ -823,4 +824,30 @@ class HistoryDataTable extends StatelessWidget {
 
 extension on DateTime {
   DateTime get startOfDay => DateTime(year, month, day);
+}
+
+class PreviousWeekWinnerCalloutWidget extends StatelessWidget {
+  const PreviousWeekWinnerCalloutWidget({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final thisWeeksWinnersName =
+        Provider.of<Submissions>(context).previous.firstOrNull?.name ?? "None";
+    return Padding(
+      padding: const EdgeInsets.all(8.0),
+      child: Card(
+          child: Padding(
+        padding: const EdgeInsets.all(8.0),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text("🏆 Current Champion: ", style: TextStyle(fontSize: 16)),
+            Text(thisWeeksWinnersName,
+                style:
+                    const TextStyle(fontWeight: FontWeight.bold, fontSize: 20)),
+          ],
+        ),
+      )),
+    );
+  }
 }
