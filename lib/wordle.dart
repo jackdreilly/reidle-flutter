@@ -222,7 +222,7 @@ Checked checkWordle(String word, ClassWords guesses) {
           return Checked(false, '"${letter.letter}" is not in word');
         }
       }
-      if (letter.cls == Class.off) {
+      if (letter.cls == Class.off || letter.cls == Class.miss) {
         final hash = [letter.letter, iLetter].join('');
         if (offs.contains(hash)) {
           return Checked(false, '"${letter.letter}" is not in position ${iLetter + 1}');
@@ -246,13 +246,12 @@ Checked checkWordle(String word, ClassWords guesses) {
     for (var element in guess.groupBy((t) => t.letter)) {
       if (element.value.length > (maxRights[element.key] ?? 7)) {
         final count = maxRights[element.key] ?? 7;
-        return Checked(false,
-            '"${element.key}" is present at most $count time${count > 1 ? 's' : ''}');
+        return Checked(
+            false, '"${element.key}" is present at most $count time${count > 1 ? 's' : ''}');
       }
       if (element.value.any((element) => element.cls == Class.miss)) {
-        maxRights[element.key] = element.value
-            .where((x) => [Class.right, Class.off].contains(x.cls))
-            .length;
+        maxRights[element.key] =
+            element.value.where((x) => [Class.right, Class.off].contains(x.cls)).length;
       }
     }
   }

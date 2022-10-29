@@ -9,10 +9,16 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:reidle/wordle.dart';
 
 void main() {
-  testWidgets('Example fails', (WidgetTester tester) async {
+  test('known failures', () async {
     expect(
         checkWordle("motif", scoreWordle("motif", ["altho", 'potty', 'totem']))
             .error,
         '"t" is present at most 1 time');
   });
+  test(
+      'apply',
+      () => expect(
+          checkWordle(
+              "amply", scoreWordle("amply", ["spoor", "plank", 'apply'])).error,
+          '"p" is not in position 2'));
 }
