@@ -7,15 +7,15 @@ import * as sendgrid from "@sendgrid/mail";
  */
 
 export const onNewSubmission = firebase
-  .runWith({secrets: ["SENDGRID_API_KEY"]})
+  .runWith({ secrets: ["SENDGRID_API_KEY"] })
   .firestore.document("submissions/{submissionId}")
-  .onCreate(async (snap) => {
+  .onCreate(async (snapshot) => {
     sendgrid.setApiKey(process.env.SENDGRID_API_KEY ?? "");
-    const data = snap.data() ?? {};
+    const data = snapshot.data() ?? {};
     await sendgrid.send({
       to: "reidle@googlegroups.com",
-      from: "jackdreilly@gmail.com",
-      subject: "Update",
+      from: { name: data.name, email: "jackdreilly@gmail.com" },
+      subject: data.submissionTime.substring(0, 10),
       text: `
 Name: ${data.name}
 Date: ${data.submissionTime}
