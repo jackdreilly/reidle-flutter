@@ -32,9 +32,7 @@ class Game {
 
   Game(this.dictionary, this.theWord, this.theAnswer, this.isReal) {
     timerProvider = TimerProvider();
-    reidleProvider =
-        ReidleProvider(dictionary, timerProvider, isReal, theWord, theAnswer)
-          ..start();
+    reidleProvider = ReidleProvider(dictionary, timerProvider, isReal, theWord, theAnswer)..start();
   }
 }
 
@@ -57,13 +55,11 @@ class ReidleProvider extends ChangeNotifier {
       return;
     }
     if (k == '␡') {
-      controller.text =
-          controller.text.substring(0, max(0, controller.text.length - 1));
+      controller.text = controller.text.substring(0, max(0, controller.text.length - 1));
     } else {
       controller.text += k;
     }
-    controller.selection = TextSelection.fromPosition(
-        TextPosition(offset: controller.text.length));
+    controller.selection = TextSelection.fromPosition(TextPosition(offset: controller.text.length));
     notifyListeners();
   }
 
@@ -76,8 +72,7 @@ class ReidleProvider extends ChangeNotifier {
   final String theWord;
   final String theAnswer;
 
-  ReidleProvider(this.dictionary, this.timerProvider, this.isReal, this.theWord,
-      this.theAnswer) {
+  ReidleProvider(this.dictionary, this.timerProvider, this.isReal, this.theWord, this.theAnswer) {
     String? last;
     controller.addListener(() {
       if (controller.text == last) {
@@ -95,8 +90,7 @@ class ReidleProvider extends ChangeNotifier {
   final controller = TextEditingController();
 
   Duration get duration =>
-      (_endTime ?? DateTime.now()).difference(_startTime ?? DateTime.now()) +
-      timerProvider.penalty;
+      (_endTime ?? DateTime.now()).difference(_startTime ?? DateTime.now()) + timerProvider.penalty;
 
   void toggle() {
     (isRunning ? stop : start)();
@@ -150,8 +144,7 @@ class ReidleProvider extends ChangeNotifier {
     if (controller.text.length != 5) return snack('Must be 5 letters');
     if (!dictionary.isValid(controller.text)) return snack('Not a word', 5);
 
-    FirebaseAnalytics.instance
-        .logEvent(name: "guess", parameters: {'guess': s});
+    FirebaseAnalytics.instance.logEvent(name: "guess", parameters: {'guess': s});
     if (guesses.contains(s)) {
       return;
     }
@@ -211,8 +204,7 @@ void main() async {
   );
 }
 
-typedef TimerBuilder = Widget? Function(
-    ReidleProvider reidle, BuildContext context);
+typedef TimerBuilder = Widget? Function(ReidleProvider reidle, BuildContext context);
 
 class TimerWidget extends StatelessWidget {
   final TimerBuilder builder;
@@ -221,8 +213,7 @@ class TimerWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return builder(Provider.of<ReidleProvider>(context), context) ??
-        Container();
+    return builder(Provider.of<ReidleProvider>(context), context) ?? Container();
   }
 }
 
@@ -233,8 +224,7 @@ class Home extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
         appBar: AppBar(
-            title: Text(
-                "Reidle Week ${DateTime.now().reidleWeek} Day ${DateTime.now().reidleDay}",
+            title: Text("Reidle Week ${DateTime.now().reidleWeek} Day ${DateTime.now().reidleDay}",
                 style: GoogleFonts.robotoMono())),
         drawer: const ReidleDrawer(),
         floatingActionButtonLocation: FloatingActionButtonLocation.startFloat,
@@ -269,13 +259,14 @@ class Home extends StatelessWidget {
                     children: [
                       const Padding(
                         padding: EdgeInsets.all(8.0),
-                        child: Text("Today's results",
-                            style: TextStyle(fontSize: 20)),
+                        child: Text("Today's results", style: TextStyle(fontSize: 20)),
                       ),
                       Padding(
                         padding: const EdgeInsets.all(8.0),
                         child: HistoryDataTable(
-                            maxDate: DateTime.now().startOfDay),
+                          maxDate: DateTime.now().startOfDay,
+                          byTime: true,
+                        ),
                       ),
                     ],
                   ),
@@ -294,8 +285,7 @@ class PlayButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final hasName =
-        Provider.of<User?>(context)?.displayName?.isNotEmpty ?? false;
+    final hasName = Provider.of<User?>(context)?.displayName?.isNotEmpty ?? false;
     final alreadyPlayed = Provider.of<Submissions>(context).alreadyPlayed;
     final canPlay = hasName && !alreadyPlayed;
     return FloatingActionButton(
@@ -303,11 +293,10 @@ class PlayButton extends StatelessWidget {
       backgroundColor: canPlay ? null : Colors.grey,
       onPressed: () => canPlay
           ? Navigator.of(context).push(MaterialPageRoute(
-              builder: (_) => GameWidget(
-                  game: Game(dict, dict.todaysWord, dict.todaysAnswer, true))))
-          : ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-              content: Text(
-                  alreadyPlayed ? "Already played today" : "Must set name"))),
+              builder: (_) =>
+                  GameWidget(game: Game(dict, dict.todaysWord, dict.todaysAnswer, true))))
+          : ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text(alreadyPlayed ? "Already played today" : "Must set name"))),
       child: const Icon(Icons.play_arrow),
     );
   }
@@ -351,16 +340,14 @@ class MyNameWidget extends StatelessWidget {
     return TextFormField(
       initialValue: Provider.of<User?>(context)?.displayName ?? "",
       decoration: const InputDecoration(labelText: "My Name"),
-      onFieldSubmitted: (s) =>
-          FirebaseAuth.instance.currentUser?.updateDisplayName(s),
+      onFieldSubmitted: (s) => FirebaseAuth.instance.currentUser?.updateDisplayName(s),
     );
   }
 }
 
 void pushPractice(BuildContext context) {
   Navigator.of(context).push(MaterialPageRoute(
-      builder: (_) => GameWidget(
-          game: Game(dict, dict.randomWord, dict.randomAnswer, false))));
+      builder: (_) => GameWidget(game: Game(dict, dict.randomWord, dict.randomAnswer, false))));
 }
 
 class HomeButton extends StatelessWidget {
@@ -369,8 +356,7 @@ class HomeButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return IconButton(
-        onPressed: () =>
-            Navigator.of(context).popUntil((route) => route.isFirst),
+        onPressed: () => Navigator.of(context).popUntil((route) => route.isFirst),
         icon: const Icon(Icons.home));
   }
 }
@@ -418,8 +404,7 @@ class GameWidget extends StatelessWidget {
               title: const TimerHeader(),
               actions: const [HomeButton()],
             ),
-            floatingActionButtonLocation:
-                FloatingActionButtonLocation.startFloat,
+            floatingActionButtonLocation: FloatingActionButtonLocation.startFloat,
             floatingActionButton: GameFloatingActionButton(game: game),
             drawer: const ReidleDrawer(),
             body: const WordleGameWidget()));
@@ -428,8 +413,7 @@ class GameWidget extends StatelessWidget {
 
 class GameFloatingActionButton extends StatelessWidget {
   final Game game;
-  const GameFloatingActionButton({Key? key, required this.game})
-      : super(key: key);
+  const GameFloatingActionButton({Key? key, required this.game}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
@@ -491,8 +475,7 @@ class ReidleDrawer extends StatelessWidget {
         ListTile(
             leading: const Icon(Icons.home),
             title: const Text("Home"),
-            onTap: () =>
-                Navigator.of(context).popUntil((route) => route.isFirst)),
+            onTap: () => Navigator.of(context).popUntil((route) => route.isFirst)),
         ListTile(
             leading: const Icon(Icons.leaderboard),
             title: const Text('Board'),
@@ -505,8 +488,8 @@ class ReidleDrawer extends StatelessWidget {
   }
 }
 
-void pushHistory(BuildContext context) => Navigator.of(context)
-    .push(MaterialPageRoute(builder: (_) => const HistoryPage()));
+void pushHistory(BuildContext context) =>
+    Navigator.of(context).push(MaterialPageRoute(builder: (_) => const HistoryPage()));
 
 class PlaybackPage extends StatelessWidget {
   final Submission? submission;
@@ -514,8 +497,8 @@ class PlaybackPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final submission = this.submission ??
-        Provider.of<Submissions>(context).currentWinner?.submission;
+    final submission =
+        this.submission ?? Provider.of<Submissions>(context).currentWinner?.submission;
     return Scaffold(
         appBar: AppBar(
           title: const Text("Playback"),
@@ -607,12 +590,9 @@ extension<T> on Iterable<T> {
   }
 }
 
-void submissionSnackbar(BuildContext context, Submission submission,
-    [String? todaysAnswer]) {
+void submissionSnackbar(BuildContext context, Submission submission, [String? todaysAnswer]) {
   ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-      content: Text([submission.error ?? 'Win', todaysAnswer]
-          .where((x) => x != null)
-          .join(': '))));
+      content: Text([submission.error ?? 'Win', todaysAnswer].where((x) => x != null).join(': '))));
 }
 
 enum PlaybackStatus { normal, penalty, done }
@@ -633,14 +613,11 @@ class PlaybackState {
 
   Color get color => status.color;
 
-  PlaybackState(List<String> guesses, this.status)
-      : guesses = List.from(guesses);
+  PlaybackState(List<String> guesses, this.status) : guesses = List.from(guesses);
 
-  factory PlaybackState.initial(Submission submission) => PlaybackState([
-        submission.guesses?.firstOrNull ??
-            dict.wordForDate(submission.submissionTime),
-        ""
-      ], PlaybackStatus.normal);
+  factory PlaybackState.initial(Submission submission) => PlaybackState(
+      [submission.guesses?.firstOrNull ?? dict.wordForDate(submission.submissionTime), ""],
+      PlaybackStatus.normal);
 }
 
 Stream<PlaybackState> playbackStream(Submission submission) async* {
@@ -683,12 +660,9 @@ class PlaybackWidget extends StatelessWidget {
         initialData: PlaybackState.initial(submission),
         builder: (context, _) {
           final state = Provider.of<PlaybackState>(context);
-          final answer = submission.answer ??
-              dict.answerForDate(submission.submissionTime);
+          final answer = submission.answer ?? dict.answerForDate(submission.submissionTime);
           return Card(
-              color: scoreWordle(answer, state.guesses).won
-                  ? Colors.green.shade200
-                  : state.color,
+              color: scoreWordle(answer, state.guesses).won ? Colors.green.shade200 : state.color,
               child: Padding(
                 padding: const EdgeInsets.all(12.0),
                 child: WordleWidget(answer, state.guesses),
@@ -703,22 +677,15 @@ class ThisWeekDataTable extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return DataTable(
-        columns: ['name', 'wins', 'time']
-            .map((s) => DataColumn(label: Text(s)))
-            .toList(),
+        columns: ['name', 'wins', 'time'].map((s) => DataColumn(label: Text(s))).toList(),
         rows: Provider.of<Submissions>(context)
             .thisWeek
             .map(
-              (e) => DataRow(
-                  cells: [
-                    DataCell(Text(e.key)),
-                    DataCell(Text(e.value.key.toString())),
-                    DataCell(Text(Duration(microseconds: e.value.value.toInt())
-                        .stopwatchString))
-                  ],
-                  color: e.key.isMyName
-                      ? MaterialStateProperty.all(Colors.yellow.shade200)
-                      : null),
+              (e) => DataRow(cells: [
+                DataCell(Text(e.key)),
+                DataCell(Text(e.value.key.toString())),
+                DataCell(Text(Duration(microseconds: e.value.value.toInt()).stopwatchString))
+              ], color: e.key.isMyName ? MaterialStateProperty.all(Colors.yellow.shade200) : null),
             )
             .toList());
   }
@@ -739,9 +706,7 @@ class PreviousDataTable extends StatelessWidget {
         rows: Provider.of<Submissions>(context)
             .previous
             .map((e) => DataRow(
-                color: e.name.isMyName
-                    ? MaterialStateProperty.all(Colors.yellow.shade200)
-                    : null,
+                color: e.name.isMyName ? MaterialStateProperty.all(Colors.yellow.shade200) : null,
                 cells: [e.week, e.name, e.wins, e.duration.stopwatchString]
                     .map((x) => DataCell(Text(x.toString())))
                     .toList()))
@@ -751,9 +716,11 @@ class PreviousDataTable extends StatelessWidget {
 
 class HistoryDataTable extends StatelessWidget {
   final DateTime? maxDate;
+  final bool byTime;
   const HistoryDataTable({
     this.maxDate,
     Key? key,
+    this.byTime = false,
   }) : super(key: key);
 
   @override
@@ -770,8 +737,11 @@ class HistoryDataTable extends StatelessWidget {
         ].map((s) => DataColumn(label: Text(s))).toList(),
         rows: Provider.of<Submissions>(context)
             .submissions
-            .where((s) => s.submission.submissionTime.isAfter(
-                maxDate ?? DateTime.now().subtract(const Duration(days: 40))))
+            .where((s) => s.submission.submissionTime
+                .isAfter(maxDate ?? DateTime.now().subtract(const Duration(days: 40))))
+            .sorted((t) => byTime
+                ? t.submission.time as Comparable
+                : -t.submission.submissionTime.millisecondsSinceEpoch)
             .map((e) => DataRow(
                   onLongPress: e.submission.error?.isNotEmpty ?? false
                       ? () => submissionSnackbar(context, e.submission)
@@ -793,17 +763,15 @@ class HistoryDataTable extends StatelessWidget {
                             : () => Navigator.push(
                                 context,
                                 MaterialPageRoute(
-                                    builder: (context) => PlaybackPage(
-                                        submission: e.submission)))),
-                    DataCell(Text(e.submission.name
-                        .substring(0, min(e.submission.name.length, 7)))),
+                                    builder: (context) => PlaybackPage(submission: e.submission)))),
+                    DataCell(
+                        Text(e.submission.name.substring(0, min(e.submission.name.length, 7)))),
                     DataCell(Text(e.submission.submissionTime.dateString,
                         style: TextStyle(
-                            fontWeight:
-                                e.submission.submissionTime.dateString ==
-                                        DateTime.now().toUtc().dateString
-                                    ? FontWeight.bold
-                                    : FontWeight.normal))),
+                            fontWeight: e.submission.submissionTime.dateString ==
+                                    DateTime.now().toUtc().dateString
+                                ? FontWeight.bold
+                                : FontWeight.normal))),
                     DataCell(Text(e.submission.time.stopwatchString)),
                     DataCell(() {
                       final seconds = e.submission.penalty?.inSeconds ?? 0;
@@ -843,11 +811,15 @@ class PreviousWeekWinnerCalloutWidget extends StatelessWidget {
           children: [
             const Text("🏆 Current Champion: ", style: TextStyle(fontSize: 16)),
             Text(thisWeeksWinnersName,
-                style:
-                    const TextStyle(fontWeight: FontWeight.bold, fontSize: 20)),
+                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 20)),
           ],
         ),
       )),
     );
   }
+}
+
+extension<T> on Iterable<T> {
+  List<T> sorted(Comparable Function(T t) key) =>
+      toList()..sort((a, b) => key(a).compareTo(key(b)));
 }
