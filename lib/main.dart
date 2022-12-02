@@ -9,6 +9,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
+import 'package:reidle/chat.dart';
 import 'package:reidle/choose_word.dart';
 import 'package:reidle/recorder.dart';
 import 'package:reidle/wordle.dart';
@@ -231,6 +232,8 @@ class Home extends StatelessWidget {
         floatingActionButton: Column(
           mainAxisSize: MainAxisSize.min,
           children: const [
+            ChatButton(),
+            SizedBox(height: 16),
             HistoryButton(),
             SizedBox(height: 16),
             PracticeButton(),
@@ -328,6 +331,21 @@ class HistoryButton extends StatelessWidget {
       heroTag: "history",
       onPressed: () => pushHistory(context),
       child: const Icon(Icons.leaderboard),
+    );
+  }
+}
+
+class ChatButton extends StatelessWidget {
+  const ChatButton({
+    Key? key,
+  }) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return FloatingActionButton(
+      heroTag: "chat",
+      onPressed: () => pushChat(context),
+      child: const Icon(Icons.message),
     );
   }
 }
@@ -483,6 +501,13 @@ class ReidleDrawer extends StatelessWidget {
               Navigator.of(context).pop();
               pushHistory(context);
             }),
+        ListTile(
+            leading: const Icon(Icons.message),
+            title: const Text('Chat'),
+            onTap: () {
+              Navigator.of(context).pop();
+              pushChat(context);
+            }),
       ]).toList());
     }));
   }
@@ -490,6 +515,8 @@ class ReidleDrawer extends StatelessWidget {
 
 void pushHistory(BuildContext context) =>
     Navigator.of(context).push(MaterialPageRoute(builder: (_) => const HistoryPage()));
+void pushChat(BuildContext context) =>
+    Navigator.of(context).push(MaterialPageRoute(builder: (_) => const ChatWidget()));
 
 class PlaybackPage extends StatelessWidget {
   final Submission? submission;
