@@ -62,9 +62,13 @@ class _ChatWidgetState extends State<ChatWidget> {
                     return ListView(
                       children: snapshot.data
                               ?.map((e) => ListTile(
-                                    leading: Text(e['name'] ?? ""),
+                                    subtitle: Text(e['name'] ?? ""),
                                     title: Text(e['message'] ?? ''),
-                                    trailing: Text(e['date'] ?? ''),
+                                    trailing: Text((e['date'] as String? ?? '')
+                                        .substring(5)
+                                        .split('.')
+                                        .first
+                                        .replaceAll('T', '\n')),
                                   ))
                               .toList() ??
                           [],
