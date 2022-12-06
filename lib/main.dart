@@ -757,7 +757,7 @@ class HistoryDataTable extends StatelessWidget {
         columns: [
           'watch',
           'name',
-          'date',
+          if (!byTime) 'date',
           'time',
           'pen',
           'paste',
@@ -793,12 +793,13 @@ class HistoryDataTable extends StatelessWidget {
                                     builder: (context) => PlaybackPage(submission: e.submission)))),
                     DataCell(
                         Text(e.submission.name.substring(0, min(e.submission.name.length, 7)))),
-                    DataCell(Text(e.submission.submissionTime.dateString,
-                        style: TextStyle(
-                            fontWeight: e.submission.submissionTime.dateString ==
-                                    DateTime.now().toUtc().dateString
-                                ? FontWeight.bold
-                                : FontWeight.normal))),
+                    if (!byTime)
+                      DataCell(Text(e.submission.submissionTime.dateString,
+                          style: TextStyle(
+                              fontWeight: e.submission.submissionTime.dateString ==
+                                      DateTime.now().toUtc().dateString
+                                  ? FontWeight.bold
+                                  : FontWeight.normal))),
                     DataCell(Text(e.submission.time.stopwatchString)),
                     DataCell(() {
                       final seconds = e.submission.penalty?.inSeconds ?? 0;
