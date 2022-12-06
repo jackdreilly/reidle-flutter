@@ -26,7 +26,7 @@ class _ChatWidgetState extends State<ChatWidget> {
             isGreaterThanOrEqualTo:
                 DateTime.now().toUtc().subtract(const Duration(days: 30)).toIso8601String())
         .snapshots()
-        .map((event) => event.docs.map((e) => e.data()).toList());
+        .map((event) => event.docs.map((e) => {'ref': e.reference, ...e.data()}).toList());
   }
 
   @override
@@ -62,9 +62,16 @@ class _ChatWidgetState extends State<ChatWidget> {
                     return ListView(
                       children: snapshot.data
                               ?.map((e) => ListTile(
+                                    trailing: e['uid'] == FirebaseAuth.instance.currentUser?.uid ||
+                                            e['name'] ==
+                                                FirebaseAuth.instance.currentUser?.displayName
+                                        ? IconButton(
+                                            onPressed: (e['ref'] as DocumentReference).delete,
+                                            icon: const Icon(Icons.delete))
+                                        : null,
                                     subtitle: Text(e['name'] ?? ""),
                                     title: Text(e['message'] ?? ''),
-                                    trailing: Text((e['date'] as String? ?? '')
+                                    leading: Text((e['date'] as String? ?? '')
                                         .substring(5)
                                         .split('.')
                                         .first
