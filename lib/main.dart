@@ -255,23 +255,27 @@ class Home extends StatelessWidget {
                 ),
               ),
               const PreviousWeekWinnerCalloutWidget(),
-              Padding(
-                padding: const EdgeInsets.all(8.0),
-                child: Card(
-                  child: Column(
-                    children: [
-                      const Padding(
-                        padding: EdgeInsets.all(8.0),
-                        child: Text("Today's results", style: TextStyle(fontSize: 20)),
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.all(8.0),
+                  child: Card(
+                    child: SingleChildScrollView(
+                      child: Column(
+                        children: [
+                          const Padding(
+                            padding: EdgeInsets.all(8.0),
+                            child: Text("Today's results", style: TextStyle(fontSize: 20)),
+                          ),
+                          Padding(
+                            padding: const EdgeInsets.all(8.0),
+                            child: HistoryDataTable(
+                              maxDate: DateTime.now().startOfDay,
+                              byTime: true,
+                            ),
+                          ),
+                        ],
                       ),
-                      Padding(
-                        padding: const EdgeInsets.all(8.0),
-                        child: HistoryDataTable(
-                          maxDate: DateTime.now().startOfDay,
-                          byTime: true,
-                        ),
-                      ),
-                    ],
+                    ),
                   ),
                 ),
               )
