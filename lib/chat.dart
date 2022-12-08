@@ -20,6 +20,7 @@ class _ChatWidgetState extends State<ChatWidget> {
   @override
   void initState() {
     super.initState();
+    update();
     stream = collection
         .orderBy('date', descending: true)
         .where('date',
@@ -27,6 +28,19 @@ class _ChatWidgetState extends State<ChatWidget> {
                 DateTime.now().toUtc().subtract(const Duration(days: 30)).toIso8601String())
         .snapshots()
         .map((event) => event.docs.map((e) => {'ref': e.reference, ...e.data()}).toList());
+  }
+
+  void update() {
+    FirebaseFirestore.instance
+        .collection('users')
+        .doc(FirebaseAuth.instance.currentUser?.uid ?? "")
+        .set({'chatLastVisited': DateTime.now().toUtc().toIso8601String()});
+  }
+
+  @override
+  void dispose() {
+    update();
+    super.dispose();
   }
 
   @override
@@ -45,6 +59,7 @@ class _ChatWidgetState extends State<ChatWidget> {
                 focusNode: focusNode,
                 autofocus: true,
                 onSubmitted: (message) {
+                  update();
                   collection.add({
                     'date': DateTime.now().toUtc().toIso8601String(),
                     'message': message,

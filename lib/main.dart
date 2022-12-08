@@ -3,6 +3,7 @@ import 'dart:math';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
+import 'package:rxdart/rxdart.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/foundation.dart';
@@ -346,11 +347,27 @@ class ChatButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return FloatingActionButton(
-      heroTag: "chat",
-      onPressed: () => pushChat(context),
-      child: const Icon(Icons.message),
-    );
+    return StreamBuilder<bool>(
+        stream: FirebaseAuth.instance
+            .authStateChanges()
+            .switchMap((user) => FirebaseFirestore.instance
+                .collection('users')
+                .doc(user?.uid ?? "")
+                .snapshots()
+                .map((event) => event.data()?['chatLastVisited'] ?? '2018-01-01'))
+            .switchMap((date) => FirebaseFirestore.instance
+                .collection('chats')
+                .orderBy('date', descending: true)
+                .limit(1)
+                .snapshots()
+                .map((event) =>
+                    (event.docs.firstOrNull?.data()['date'] ?? '').toString().compareTo(date) > 0)),
+        builder: (context, snapshot) => FloatingActionButton(
+              heroTag: "chat",
+              onPressed: () => pushChat(context),
+              backgroundColor: snapshot.data ?? false ? Colors.green : null,
+              child: const Icon(Icons.message),
+            ));
   }
 }
 
