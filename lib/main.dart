@@ -776,11 +776,11 @@ class HistoryDataTable extends StatelessWidget {
     return DataTable(
         columnSpacing: 20,
         columns: [
+          'paste',
           'name',
           if (!byTime) 'date',
           'time',
           'pen',
-          'paste',
           'watch',
         ].map((s) => DataColumn(label: Text(s))).toList(),
         rows: Provider.of<Submissions>(context)
@@ -802,6 +802,10 @@ class HistoryDataTable extends StatelessWidget {
                               ? Colors.yellow.shade100
                               : Colors.white),
                   cells: [
+                    DataCell(Text(
+                      e.submission.paste ?? "",
+                      style: const TextStyle(fontSize: 6),
+                    )),
                     DataCell(
                         Text(e.submission.name.substring(0, min(e.submission.name.length, 7)))),
                     if (!byTime)
@@ -819,10 +823,6 @@ class HistoryDataTable extends StatelessWidget {
                       }
                       return Text("$seconds");
                     }()),
-                    DataCell(Text(
-                      e.submission.paste ?? "",
-                      style: const TextStyle(fontSize: 6),
-                    )),
                     DataCell(
                         e.submission.events?.isEmpty ?? true
                             ? Container()
