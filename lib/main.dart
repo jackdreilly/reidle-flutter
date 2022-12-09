@@ -776,12 +776,12 @@ class HistoryDataTable extends StatelessWidget {
     return DataTable(
         columnSpacing: 20,
         columns: [
-          'watch',
           'name',
           if (!byTime) 'date',
           'time',
           'pen',
           'paste',
+          'watch',
         ].map((s) => DataColumn(label: Text(s))).toList(),
         rows: Provider.of<Submissions>(context)
             .submissions
@@ -803,16 +803,6 @@ class HistoryDataTable extends StatelessWidget {
                               : Colors.white),
                   cells: [
                     DataCell(
-                        e.submission.events?.isEmpty ?? true
-                            ? Container()
-                            : const Icon(Icons.play_arrow),
-                        onTap: e.submission.events?.isEmpty ?? true
-                            ? null
-                            : () => Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                    builder: (context) => PlaybackPage(submission: e.submission)))),
-                    DataCell(
                         Text(e.submission.name.substring(0, min(e.submission.name.length, 7)))),
                     if (!byTime)
                       DataCell(Text(e.submission.submissionTime.dateString,
@@ -833,6 +823,16 @@ class HistoryDataTable extends StatelessWidget {
                       e.submission.paste ?? "",
                       style: const TextStyle(fontSize: 6),
                     )),
+                    DataCell(
+                        e.submission.events?.isEmpty ?? true
+                            ? Container()
+                            : const Icon(Icons.play_arrow),
+                        onTap: e.submission.events?.isEmpty ?? true
+                            ? null
+                            : () => Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                    builder: (context) => PlaybackPage(submission: e.submission)))),
                   ],
                 ))
             .toList());
