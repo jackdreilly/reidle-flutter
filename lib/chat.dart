@@ -60,6 +60,9 @@ class _ChatWidgetState extends State<ChatWidget> {
                 autofocus: true,
                 onSubmitted: (message) {
                   update();
+                  if (message.trim().isEmpty) {
+                    return;
+                  }
                   collection.add({
                     'date': DateTime.now().toUtc().toIso8601String(),
                     'message': message,
