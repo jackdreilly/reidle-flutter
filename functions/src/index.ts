@@ -7,14 +7,14 @@ import * as sendgrid from "@sendgrid/mail";
  */
 
 export const onNewSubmission = firebase
-  .runWith({ secrets: ["SENDGRID_API_KEY"] })
+  .runWith({secrets: ["SENDGRID_API_KEY"]})
   .firestore.document("submissions/{submissionId}")
   .onCreate(async (snapshot) => {
     sendgrid.setApiKey(process.env.SENDGRID_API_KEY ?? "");
     const data = snapshot.data() ?? {};
     await sendgrid.send({
       to: "reidle@googlegroups.com",
-      from: { name: data.name, email: "jackdreilly@gmail.com" },
+      from: {name: data.name, email: "jackdreilly@gmail.com"},
       subject: data.submissionTime.substring(0, 10),
       text: `
 Name: ${data.name}
@@ -26,14 +26,14 @@ Lost: ${(data.error?.length ?? 0) == 0 ? "no" : "yes"}
     });
   });
 export const onNewChat = firebase
-  .runWith({ secrets: ["SENDGRID_API_KEY"] })
+  .runWith({secrets: ["SENDGRID_API_KEY"]})
   .firestore.document("chats/{chatId}")
   .onCreate(async (snapshot) => {
     sendgrid.setApiKey(process.env.SENDGRID_API_KEY ?? "");
     const data = snapshot.data() ?? {};
     await sendgrid.send({
       to: "reidle@googlegroups.com",
-      from: { name: data.name, email: "jackdreilly@gmail.com" },
+      from: {name: data.name, email: "jackdreilly@gmail.com"},
       subject: data.message,
       text: data.message,
     });

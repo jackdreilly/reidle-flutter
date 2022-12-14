@@ -533,7 +533,7 @@ class ReidleDrawer extends StatelessWidget {
         ListTile(
           leading: const Icon(Icons.notification_add),
           title: const Text('Notifications'),
-          onTap: () => launchUrl(Uri.dataFromString("https://groups.google.com/g/reidle")),
+          onTap: () => launchUrl(Uri.parse("https://groups.google.com/g/reidle")),
         ),
       ]).toList());
     }));
