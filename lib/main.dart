@@ -14,6 +14,7 @@ import 'package:reidle/chat.dart';
 import 'package:reidle/choose_word.dart';
 import 'package:reidle/recorder.dart';
 import 'package:reidle/wordle.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import 'db.dart';
 import 'firebase_options.dart';
@@ -529,6 +530,11 @@ class ReidleDrawer extends StatelessWidget {
               Navigator.of(context).pop();
               pushChat(context);
             }),
+        ListTile(
+          leading: const Icon(Icons.notification_add),
+          title: const Text('Notifications'),
+          onTap: () => launchUrl(Uri.dataFromString("https://groups.google.com/g/reidle")),
+        ),
       ]).toList());
     }));
   }
