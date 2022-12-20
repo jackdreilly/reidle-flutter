@@ -2,6 +2,7 @@ import 'dart:math';
 
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:reidle/extensions.dart';
 
 enum Class { unused, miss, off, right }
 
@@ -256,23 +257,4 @@ Checked checkWordle(String word, ClassWords guesses) {
     }
   }
   return const Checked(false, null);
-}
-
-extension Stopwatch on Duration {
-  String get stopwatchString =>
-      '${inMinutes.toString().padLeft(2, '0')}:${(inSeconds % 60).toString().padLeft(2, '0')}';
-}
-
-extension<T> on Iterable<T> {
-  Iterable<MapEntry<K, List<T>>> groupBy<K>(K Function(T t) grouper) {
-    final map = <K, List<T>>{};
-    for (final t in this) {
-      final key = grouper(t);
-      if (!map.containsKey(key)) {
-        map[key] = [];
-      }
-      map[key]?.add(t);
-    }
-    return map.entries;
-  }
 }

@@ -3,6 +3,7 @@ import 'dart:math';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
+import 'package:reidle/extensions.dart';
 import 'package:rxdart/rxdart.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
@@ -263,17 +264,14 @@ class Home extends StatelessWidget {
                   child: Card(
                     child: SingleChildScrollView(
                       child: Column(
-                        children: [
-                          const Padding(
+                        children: const [
+                          Padding(
                             padding: EdgeInsets.all(8.0),
                             child: Text("Today's results", style: TextStyle(fontSize: 20)),
                           ),
                           Padding(
-                            padding: const EdgeInsets.all(8.0),
-                            child: HistoryDataTable(
-                              maxDate: DateTime.now().startOfDay,
-                              byTime: true,
-                            ),
+                            padding: EdgeInsets.all(8.0),
+                            child: HistoryDataTable(frontPage: true),
                           ),
                         ],
                       ),
@@ -535,6 +533,11 @@ class ReidleDrawer extends StatelessWidget {
           title: const Text('Notifications'),
           onTap: () => launchUrl(Uri.parse("https://groups.google.com/g/reidle")),
         ),
+        ListTile(
+          leading: const Icon(Icons.info_outline),
+          title: const Text('Rules'),
+          onTap: () => launchUrl(Uri.parse("https://shorturl.at/ltEHX")),
+        ),
       ]).toList());
     }));
   }
@@ -578,7 +581,7 @@ class HistoryPage extends StatelessWidget {
             title: const Text("Board"),
             actions: const [HomeButton()],
             bottom: TabBar(
-                tabs: ["All", "This Week", "History"]
+                tabs: ["This Week", "All", "History"]
                     .map((x) => Padding(
                           padding: const EdgeInsets.all(8.0),
                           child: Text(x),
@@ -587,8 +590,8 @@ class HistoryPage extends StatelessWidget {
         drawer: const ReidleDrawer(),
         body: TabBarView(
             children: const [
-          HistoryDataTable(),
           ThisWeekDataTable(),
+          HistoryDataTable(),
           PreviousDataTable(),
         ].map((e) => SingleChildScrollView(child: e)).toList()),
       ),
@@ -630,17 +633,6 @@ class WordleGameWidget extends StatelessWidget {
         ),
       ),
     );
-  }
-}
-
-extension<T> on Iterable<T> {
-  T? get firstOrNull => isEmpty ? null : first;
-  Iterable<T> separate<S extends T>(S w) sync* {
-    if (isNotEmpty) yield first;
-    for (final e in skip(1)) {
-      yield w;
-      yield e;
-    }
   }
 }
 
@@ -730,19 +722,47 @@ class ThisWeekDataTable extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final days = DateTime.now().toUtc().weekday;
+    final submissions = Provider.of<Submissions>(context);
+    final week =
+        submissions.weekCache.cache.putIfAbsent(DateTime.now().toUtc().reidleWeek, () => {});
+    final players = week[0]?.entries.sorted((t) => t.value) ?? [];
     return DataTable(
-        columns: ['name', 'wins', 'time'].map((s) => DataColumn(label: Text(s))).toList(),
-        rows: Provider.of<Submissions>(context)
-            .thisWeek
+        columnSpacing: 0,
+        horizontalMargin: 10,
+        columns: [
+          const DataColumn(label: Text("Name")),
+          const DataColumn(label: Text("Π")),
+          ..."MTWRFSU".characters.take(days).map((e) => DataColumn(label: Text(e), numeric: true)),
+        ],
+        rows: players
             .map(
-              (e) => DataRow(cells: [
-                DataCell(Text(e.key)),
-                DataCell(Text(e.value.key.toString())),
-                DataCell(Text(Duration(microseconds: e.value.value.toInt()).stopwatchString))
-              ], color: e.key.isMyName ? MaterialStateProperty.all(Colors.yellow.shade200) : null),
+              (t) => DataRow(cells: [
+                DataCell(Text(t.key.substring(0, t.key.length.min(10)))),
+                DataCell(Text(t.value.toString())),
+                ...1.to(days + 1).map((x) => (week[x]?[t.key] ?? 5)).map((x) => DataCell(Text(
+                      x.toString(),
+                      style: TextStyle(
+                        color: x.color,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    )))
+              ], color: t.key.isMyName ? MaterialStateProperty.all(Colors.yellow.shade200) : null),
             )
             .toList());
   }
+}
+
+extension on int {
+  Color get color =>
+      {
+        1: Colors.green[900],
+        2: Colors.green[700],
+        3: Colors.yellow[900],
+        4: Colors.yellow[800],
+        5: Colors.red[900]
+      }[this] ??
+      Colors.black;
 }
 
 class PreviousDataTable extends StatelessWidget {
@@ -750,18 +770,17 @@ class PreviousDataTable extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final weekCache = Provider.of<Submissions>(context).weekCache;
     return DataTable(
         columns: [
           'week',
           'name',
-          'wins',
-          'time',
+          'score',
         ].map((s) => DataColumn(label: Text(s))).toList(),
-        rows: Provider.of<Submissions>(context)
-            .previous
+        rows: weekCache.winners
             .map((e) => DataRow(
-                color: e.name.isMyName ? MaterialStateProperty.all(Colors.yellow.shade200) : null,
-                cells: [e.week, e.name, e.wins, e.duration.stopwatchString]
+                color: e.value.isMyName ? MaterialStateProperty.all(Colors.yellow.shade200) : null,
+                cells: [e.key, e.value, weekCache.cache[e.key]?[0]?[e.value]]
                     .map((x) => DataCell(Text(x.toString())))
                     .toList()))
             .toList());
@@ -769,12 +788,10 @@ class PreviousDataTable extends StatelessWidget {
 }
 
 class HistoryDataTable extends StatelessWidget {
-  final DateTime? maxDate;
-  final bool byTime;
+  final bool frontPage;
   const HistoryDataTable({
-    this.maxDate,
     Key? key,
-    this.byTime = false,
+    this.frontPage = false,
   }) : super(key: key);
 
   @override
@@ -784,16 +801,17 @@ class HistoryDataTable extends StatelessWidget {
         columns: [
           'paste',
           'name',
-          if (!byTime) 'date',
+          if (!frontPage) 'date',
           'time',
           'pen',
           'watch',
         ].map((s) => DataColumn(label: Text(s))).toList(),
         rows: Provider.of<Submissions>(context)
             .submissions
-            .where((s) => s.submission.submissionTime
-                .isAfter(maxDate ?? DateTime.now().subtract(const Duration(days: 40))))
-            .sorted((t) => byTime
+            .where((s) => s.submission.submissionTime.isAfter(frontPage
+                ? DateTime.now().startOfDay
+                : DateTime.now().subtract(const Duration(days: 40))))
+            .sorted((t) => frontPage
                 ? t.submission.time as Comparable
                 : -t.submission.submissionTime.millisecondsSinceEpoch)
             .map((e) => DataRow(
@@ -814,7 +832,7 @@ class HistoryDataTable extends StatelessWidget {
                     )),
                     DataCell(
                         Text(e.submission.name.substring(0, min(e.submission.name.length, 7)))),
-                    if (!byTime)
+                    if (!frontPage)
                       DataCell(Text(e.submission.submissionTime.dateString,
                           style: TextStyle(
                               fontWeight: e.submission.submissionTime.dateString ==
@@ -845,10 +863,6 @@ class HistoryDataTable extends StatelessWidget {
   }
 }
 
-extension on DateTime {
-  DateTime get startOfDay => DateTime(year, month, day);
-}
-
 class PreviousWeekWinnerCalloutWidget extends StatelessWidget {
   const PreviousWeekWinnerCalloutWidget({super.key});
 
@@ -872,9 +886,4 @@ class PreviousWeekWinnerCalloutWidget extends StatelessWidget {
       )),
     );
   }
-}
-
-extension<T> on Iterable<T> {
-  List<T> sorted(Comparable Function(T t) key) =>
-      toList()..sort((a, b) => key(a).compareTo(key(b)));
 }

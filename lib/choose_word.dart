@@ -1,11 +1,5 @@
-import 'dart:math';
-
 import 'package:flutter/services.dart';
-
-extension _D on DateTime {
-  int get dateHash =>
-      isUtc ? [year, month, day].join('').hashCode : toUtc().dateHash;
-}
+import 'package:reidle/extensions.dart';
 
 class Dictionary {
   late final Set<String> wordsSet;
@@ -29,13 +23,3 @@ class Dictionary {
 Future<Dictionary> get dictionary async => Dictionary(
     await rootBundle.loadString('assets/words.csv'),
     await rootBundle.loadString('assets/answers.csv'));
-
-extension<T> on List<T> {
-  T? get sample => isEmpty ? null : this[Random().nextInt(length)];
-  T grab(DateTime date) {
-    if (date.isBefore(DateTime(2022, 6, 8))) {
-      return this[(date.dateHash % ((length - 1) * 6)) ~/ 36];
-    }
-    return this[date.dateHash % length];
-  }
-}
