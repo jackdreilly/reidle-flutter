@@ -868,8 +868,12 @@ class PreviousWeekWinnerCalloutWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final thisWeeksWinnersName =
-        Provider.of<Submissions>(context).previous.firstOrNull?.name ?? "None";
+    final thisWeeksWinnersName = Provider.of<Submissions>(context)
+            .weekCache
+            .winners
+            .find((value) => value.key == DateTime.now().toUtc().reidleWeek - 1)
+            ?.value ??
+        "None";
     return Padding(
       padding: const EdgeInsets.all(8.0),
       child: Card(

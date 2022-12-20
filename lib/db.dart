@@ -131,40 +131,6 @@ class Submissions {
   StreamSubmission? get currentWinner =>
       submissions.where((s) => s.isWinner).where((s) => s.isToday).firstOrNull;
 
-  List<RecorderEvent>? get playback => currentWinner?.submission.events;
-
-  List<PreviousRecord> get previous => submissions
-          .where((s) => s.isWinner)
-          .where((s) => s.submission.submissionTime.reidleWeek != DateTime.now().reidleWeek)
-          .where((s) =>
-              s.submission.submissionTime.reidleWeek !=
-              submissions.map((e) => e.submission.submissionTime.reidleWeek).maxBy((p0) => -p0))
-          .groupBy((t) => t.submission.submissionTime.reidleWeek)
-          .map((weekPair) {
-        final winner = weekPair.value
-            .groupBy((t) => t.submission.name.toLowerCase().trim().replaceAll(' ', ''))
-            .map((x) => MapEntry(x.key, <Comparable>[
-                  x.value.length,
-                  -1 * x.value.sum((x) => x.submission.time.inMicroseconds),
-                ]))
-            .maxBy((x) => CompareList(x.value))!;
-        return PreviousRecord(weekPair.key, winner.key, winner.value[0] as int,
-            Duration(microseconds: (-1 * (winner.value[1] as num)).toInt()));
-      }).toList()
-        ..sort(((a, b) => b.week.compareTo(a.week)));
-
-  List<MapEntry<String, MapEntry<int, num>>> get thisWeek => submissions
-      .where((s) => s.isWinner)
-      .where((s) => s.submission.submissionTime.reidleWeek == DateTime.now().reidleWeek)
-      .groupBy((t) => t.submission.name.toLowerCase().trim().replaceAll(' ', ''))
-      .map((e) => MapEntry(
-          e.key, MapEntry(e.value.length, e.value.sum((p0) => p0.submission.time.inMicroseconds))))
-      .toList()
-    ..sort((a, b) {
-      final x = [a, b].map((x) => CompareList([-x.value.key, x.value.value])).toList();
-      return x.first.compareTo(x.last);
-    });
-
   Duration? get bestTime => currentWinner?.submission.time;
 
   bool get alreadyPlayed => submissions.any((element) => element.isMe && element.isToday);
