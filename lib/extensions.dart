@@ -120,9 +120,11 @@ extension IntE on int {
       yield i;
     }
   }
+}
 
-  int max(other) => this < other ? other : this;
-  int min(other) => this > other ? other : this;
+extension NumE<T extends num> on T {
+  T max(T other) => this < other ? other : this;
+  T min(T other) => this > other ? other : this;
 }
 
 extension Product<T extends num> on Iterable<T> {

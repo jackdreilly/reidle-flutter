@@ -726,7 +726,14 @@ class ThisWeekDataTable extends StatelessWidget {
     final submissions = Provider.of<Submissions>(context);
     final week =
         submissions.weekCache.cache.putIfAbsent(DateTime.now().toUtc().reidleWeek, () => {});
-    final players = week[0]?.entries.sorted((t) => t.value) ?? [];
+    final players = week[0]?.entries.sorted((t) => CompareList([
+              t.value,
+              submissions.weekCache.secondsCache
+                  .putIfAbsent(DateTime.now().toUtc().reidleWeek, () => {})
+                  .putIfAbsent(0, () => {})
+                  .putIfAbsent(t.key, () => 2)
+            ])) ??
+        [];
     return DataTable(
         columnSpacing: 0,
         horizontalMargin: 10,

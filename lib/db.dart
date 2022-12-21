@@ -91,6 +91,7 @@ class _Db {
 
 class WeekCache {
   final Map<int, Map<int, Map<String, int>>> cache = {};
+  final Map<int, Map<int, Map<String, double>>> secondsCache = {};
   final List<MapEntry<int, String>> winners = [];
 
   WeekCache(List<StreamSubmission> submissions) {
@@ -101,11 +102,16 @@ class WeekCache {
       final name = submission.submission.name;
       final score = submission.score.min(4);
       cache.putIfAbsent(week, () => {}).putIfAbsent(day, () => {})[name] = score;
+      secondsCache.putIfAbsent(week, () => {}).putIfAbsent(day, () => {})[name] =
+          2.0.min(submission.submission.time.inMilliseconds.toDouble() / 60.0 / 1000.0);
     }
     for (final weekEntry in cache.entries) {
       final weekCache = weekEntry.value.putIfAbsent(0, () => {});
+      final secondsWeekCache =
+          secondsCache.putIfAbsent(weekEntry.key, () => {}).putIfAbsent(0, () => {});
       for (final name in weekEntry.value.values.expand((e) => e.keys).toSet()) {
         weekCache[name] = 1;
+        secondsWeekCache[name] = 1;
         for (final day in 1.to(8)) {
           if (DateTime.now().toUtc().reidleWeek == weekEntry.key &&
               day > DateTime.now().toUtc().weekday) {
@@ -113,11 +119,21 @@ class WeekCache {
           }
           weekCache[name] = (weekCache[name] ?? 1) *
               weekEntry.value.putIfAbsent(day, () => {}).putIfAbsent(name, () => 5);
+          secondsWeekCache[name] = (secondsWeekCache[name] ?? 1) *
+              secondsCache
+                  .putIfAbsent(weekEntry.key, () => {})
+                  .putIfAbsent(day, () => {})
+                  .putIfAbsent(name, () => 2);
         }
       }
     }
     winners.addAll(cache.entries
-        .map((e) => MapEntry(e.key, e.value[0]?.entries.minBy((k) => k.value)?.key ?? ""))
+        .map((e) => MapEntry(
+            e.key,
+            e.value[0]?.entries
+                    .minBy((k) => CompareList([k.value, secondsCache[e.key]?[0]?[k] ?? 2 * 7]))
+                    ?.key ??
+                ""))
         .where((element) => element.key < DateTime.now().toUtc().reidleWeek)
         .sorted((t) => -t.key));
   }
