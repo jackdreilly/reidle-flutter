@@ -763,10 +763,10 @@ class ThisWeekDataTable extends StatelessWidget {
 extension on int {
   Color get color =>
       {
-        1: Colors.green[900],
+        1: Colors.green[800],
         2: Colors.green[700],
-        3: Colors.yellow[900],
-        4: Colors.yellow[800],
+        3: Colors.yellow[800],
+        4: Colors.deepOrange,
         5: Colors.red[900]
       }[this] ??
       Colors.black;
