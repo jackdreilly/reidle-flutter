@@ -257,6 +257,7 @@ class Home extends StatelessWidget {
                   child: Column(children: const [MyNameWidget()]),
                 ),
               ),
+              TimeUntilNextGameWidget(),
               const PreviousWeekWinnerCalloutWidget(),
               Expanded(
                 child: Padding(
@@ -896,5 +897,26 @@ class PreviousWeekWinnerCalloutWidget extends StatelessWidget {
         ),
       )),
     );
+  }
+}
+
+class TimeUntilNextGameWidget extends StatelessWidget {
+  const TimeUntilNextGameWidget({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return StreamBuilder(
+        stream: Stream.periodic(const Duration(seconds: 1)),
+        builder: (context, snapshot) {
+          final now = DateTime.now().toUtc();
+          final tomorrow = DateTime.now().toUtc().startOfDay.add(const Duration(days: 1));
+          final durationUntilNextGame = tomorrow.difference(now);
+          final hours = durationUntilNextGame.inHours;
+          final minutes = durationUntilNextGame.inMinutes % 60;
+          final seconds = durationUntilNextGame.inSeconds % 60;
+          final timer =
+              [hours, minutes, seconds].map((i) => i.toString().padLeft(2, '0')).join(':');
+          return Text("Time until next game: $timer");
+        });
   }
 }
