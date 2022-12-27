@@ -816,7 +816,13 @@ class HistoryDataTable extends StatelessWidget {
           'watch',
         ].map((s) => DataColumn(label: Text(s))).toList(),
         rows: provider.submissions
-            .take(20)
+            .take(30)
+            .where((s) => s.submission.submissionTime.isAfter(frontPage
+                ? DateTime.now().startOfDay
+                : DateTime.now().subtract(const Duration(days: 40))))
+            .sorted((t) => frontPage
+                ? t.submission.time as Comparable
+                : -t.submission.submissionTime.millisecondsSinceEpoch)
             .map((e) => DataRow(
                   onLongPress: e.submission.error?.isNotEmpty ?? false
                       ? () => submissionSnackbar(context, e.submission)
