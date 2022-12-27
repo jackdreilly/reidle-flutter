@@ -257,7 +257,7 @@ class Home extends StatelessWidget {
                   child: Column(children: const [MyNameWidget()]),
                 ),
               ),
-              TimeUntilNextGameWidget(),
+              const TimeUntilNextGameWidget(),
               const PreviousWeekWinnerCalloutWidget(),
               Expanded(
                 child: Padding(
@@ -804,6 +804,7 @@ class HistoryDataTable extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final provider = Provider.of<Submissions>(context);
     return DataTable(
         columnSpacing: 20,
         columns: [
@@ -814,14 +815,8 @@ class HistoryDataTable extends StatelessWidget {
           'pen',
           'watch',
         ].map((s) => DataColumn(label: Text(s))).toList(),
-        rows: Provider.of<Submissions>(context)
-            .submissions
-            .where((s) => s.submission.submissionTime.isAfter(frontPage
-                ? DateTime.now().startOfDay
-                : DateTime.now().subtract(const Duration(days: 40))))
-            .sorted((t) => frontPage
-                ? t.submission.time as Comparable
-                : -t.submission.submissionTime.millisecondsSinceEpoch)
+        rows: provider.submissions
+            .take(20)
             .map((e) => DataRow(
                   onLongPress: e.submission.error?.isNotEmpty ?? false
                       ? () => submissionSnackbar(context, e.submission)
