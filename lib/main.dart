@@ -272,7 +272,7 @@ class Home extends StatelessWidget {
                           ),
                           Padding(
                             padding: EdgeInsets.all(8.0),
-                            child: HistoryDataTable(frontPage: true),
+                            child: HistoryDataTable(),
                           ),
                         ],
                       ),
@@ -582,7 +582,7 @@ class HistoryPage extends StatelessWidget {
             title: const Text("Board"),
             actions: const [HomeButton()],
             bottom: TabBar(
-                tabs: ["This Week", "All", "History"]
+                tabs: ["This Week", "Today", "History"]
                     .map((x) => Padding(
                           padding: const EdgeInsets.all(8.0),
                           child: Text(x),
@@ -796,10 +796,9 @@ class PreviousDataTable extends StatelessWidget {
 }
 
 class HistoryDataTable extends StatelessWidget {
-  final bool frontPage;
+  bool get frontPage => true;
   const HistoryDataTable({
     Key? key,
-    this.frontPage = false,
   }) : super(key: key);
 
   @override
