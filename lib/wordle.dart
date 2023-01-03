@@ -163,24 +163,27 @@ class WordleKeyboardWidget extends StatelessWidget {
         }
       }
     }
-    return Column(
-        children: 'qwertyuiop,asdfghjkl,↵zxcvbnm␡'
-            .split(',')
-            .map((e) => ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 500),
-                  child: Row(
-                      mainAxisSize: MainAxisSize.max,
-                      children: e
-                          .split('')
-                          .map((e) => Expanded(
-                                child: InkWell(
-                                    onTap: () => onPressed(e),
-                                    child: ClassLetterWidget(
-                                        ClassLetter(lookup[e] ?? Class.unused, e))),
-                              ))
-                          .toList()),
-                ))
-            .toList());
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 32.0),
+      child: Column(
+          children: 'qwertyuiop,asdfghjkl,↵zxcvbnm␡'
+              .split(',')
+              .map((e) => ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 500),
+                    child: Row(
+                        mainAxisSize: MainAxisSize.max,
+                        children: e
+                            .split('')
+                            .map((e) => Expanded(
+                                  child: InkWell(
+                                      onTap: () => onPressed(e),
+                                      child: ClassLetterWidget(
+                                          ClassLetter(lookup[e] ?? Class.unused, e))),
+                                ))
+                            .toList()),
+                  ))
+              .toList()),
+    );
   }
 }
 

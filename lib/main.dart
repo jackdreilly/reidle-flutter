@@ -131,7 +131,9 @@ class ReidleProvider extends ChangeNotifier {
   onSubmitted(BuildContext context) {
     focus.requestFocus();
     final s = controller.text;
+    controller.text = '';
     void snack(String s, [int? penalty]) {
+      ScaffoldMessenger.of(context).clearSnackBars();
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(s)));
       if (penalty != null) {
         final duration = Duration(seconds: penalty);
@@ -144,9 +146,9 @@ class ReidleProvider extends ChangeNotifier {
     if (FirebaseAuth.instance.currentUser?.displayName?.isEmpty ?? true && isReal) {
       return snack("Must set name");
     }
-    if (controller.text.isEmpty) return null;
-    if (controller.text.length != 5) return snack('Must be 5 letters');
-    if (!dictionary.isValid(controller.text)) return snack('Not a word', 5);
+    if (s.isEmpty) return null;
+    if (s.length != 5) return snack('Must be 5 letters');
+    if (!dictionary.isValid(s)) return snack('Not a word', 5);
 
     FirebaseAnalytics.instance.logEvent(name: "guess", parameters: {'guess': s});
     if (guesses.contains(s)) {
@@ -521,6 +523,13 @@ class ReidleDrawer extends StatelessWidget {
             onTap: () {
               Navigator.of(context).pop();
               pushHistory(context);
+            }),
+        ListTile(
+            leading: const Icon(Icons.timer),
+            title: const Text('Practice'),
+            onTap: () {
+              Navigator.of(context).pop();
+              pushPractice(context);
             }),
         ListTile(
             leading: const Icon(Icons.message),
