@@ -867,8 +867,15 @@ class HistoryDataTable extends StatelessWidget {
                     DataCell(
                         e.submission.events?.isEmpty ?? true
                             ? Container()
-                            : const Icon(Icons.play_arrow),
-                        onTap: e.submission.events?.isEmpty ?? true
+                            : Icon(
+                                Icons.play_arrow,
+                                color:
+                                    (!provider.alreadyPlayed && e.submission.submissionTime.isToday)
+                                        ? Colors.grey
+                                        : null,
+                              ),
+                        onTap: (e.submission.events?.isEmpty ?? true) ||
+                                (!provider.alreadyPlayed && e.submission.submissionTime.isToday)
                             ? null
                             : () => Navigator.push(
                                 context,
