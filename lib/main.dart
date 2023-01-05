@@ -79,7 +79,7 @@ class ReidleProvider extends ChangeNotifier {
   ReidleProvider(this.dictionary, this.timerProvider, this.isReal, this.theWord, this.theAnswer) {
     String? last;
     controller.addListener(() {
-      if (controller.text == last) {
+      if (controller.text == last || controller.text.isEmpty) {
         return;
       }
       recorder.add(Event.word(controller.text));
@@ -131,7 +131,7 @@ class ReidleProvider extends ChangeNotifier {
   onSubmitted(BuildContext context) {
     focus.requestFocus();
     final s = controller.text;
-    controller.text = '';
+    controller.clear();
     void snack(String s, [int? penalty]) {
       ScaffoldMessenger.of(context).clearSnackBars();
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(s)));
