@@ -14,7 +14,10 @@ class Dictionary {
   String get randomAnswer => answers.sample!;
 
   bool isValid(String word) => wordsSet.contains(word);
-  String answerForDate(DateTime submissionTime) => answers.grab(submissionTime);
+  String answerForDate(DateTime submissionTime) =>
+      submissionTime.toUtc().startOfDay == DateTime.utc(2023, 1, 16)
+          ? "jiffy"
+          : answers.grab(submissionTime);
   String wordForDate(DateTime submissionTime) => words.grab(submissionTime);
   String get todaysAnswer => answerForDate(DateTime.now());
   String get todaysWord => words.grab(DateTime.now());

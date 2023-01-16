@@ -463,11 +463,11 @@ class GameFloatingActionButton extends StatelessWidget {
       return Column(
         mainAxisSize: MainAxisSize.min,
         children: const [
-          HistoryButton(),
-          SizedBox(height: 16),
-          PracticeButton(),
           SizedBox(height: 16),
           UndoButton(),
+          PracticeButton(),
+          SizedBox(height: 16),
+          HistoryButton(),
         ],
       );
     }
