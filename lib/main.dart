@@ -3,8 +3,6 @@ import 'dart:math';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
-import 'package:reidle/extensions.dart';
-import 'package:rxdart/rxdart.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/foundation.dart';
@@ -13,8 +11,10 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import 'package:reidle/chat.dart';
 import 'package:reidle/choose_word.dart';
+import 'package:reidle/extensions.dart';
 import 'package:reidle/recorder.dart';
 import 'package:reidle/wordle.dart';
+import 'package:rxdart/rxdart.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import 'db.dart';
@@ -205,7 +205,12 @@ void main() async {
             value: FirebaseAuth.instance.userChanges(),
             initialData: FirebaseAuth.instance.currentUser)
       ],
-      child: const MaterialApp(home: Home()),
+      child: MaterialApp(
+        home: const Home(),
+        theme: ThemeData(
+          useMaterial3: true,
+        ),
+      ),
     ),
   );
 }
