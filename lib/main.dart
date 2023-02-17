@@ -849,7 +849,9 @@ class HistoryDataTable extends StatelessWidget {
                               : Colors.white),
                   cells: [
                     DataCell(Text(
-                      e.submission.paste ?? "",
+                      (!provider.alreadyPlayed && e.submission.submissionTime.isToday)
+                          ? ""
+                          : e.submission.paste ?? "",
                       style: const TextStyle(fontSize: 6),
                     )),
                     DataCell(
