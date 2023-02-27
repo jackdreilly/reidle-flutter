@@ -131,7 +131,7 @@ class WeekCache {
         .map((e) => MapEntry(
             e.key,
             e.value[0]?.entries
-                    .minBy((k) => CompareList([k.value, secondsCache[e.key]?[0]?[k] ?? 2 * 7]))
+                    .minBy((k) => CompareList([k.value, secondsCache[e.key]?[0]?[k.key] ?? 2 * 7]))
                     ?.key ??
                 ""))
         .where((element) => element.key < DateTime.now().toUtc().reidleWeek)
