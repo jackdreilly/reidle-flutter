@@ -90,6 +90,9 @@ class _Db {
 }
 
 class WeekCache {
+  static const int defaultMinutes = 2;
+  static const int daysPerWeek = 7;
+  static final int maxPlaces = 4;
   final Map<int, Map<int, Map<String, int>>> cache = {};
   final Map<int, Map<int, Map<String, double>>> secondsCache = {};
   final List<MapEntry<int, String>> winners = [];
@@ -112,31 +115,39 @@ class WeekCache {
       for (final name in weekEntry.value.values.expand((e) => e.keys).toSet()) {
         weekCache[name] = 1;
         secondsWeekCache[name] = 1;
-        for (final day in 1.to(8)) {
-          if (DateTime.now().toUtc().reidleWeek == weekEntry.key &&
-              day > DateTime.now().toUtc().weekday) {
+        for (final day in 1.to(daysPerWeek + 1)) {
+          final utc = DateTime.now().toUtc();
+          if (utc.reidleWeek == weekEntry.key && day > utc.weekday) {
             continue;
           }
           weekCache[name] = (weekCache[name] ?? 1) *
-              weekEntry.value.putIfAbsent(day, () => {}).putIfAbsent(name, () => 5);
+              weekEntry.value.putIfAbsent(day, () => {}).putIfAbsent(name, () => forfeitPlace);
           secondsWeekCache[name] = (secondsWeekCache[name] ?? 1) *
               secondsCache
                   .putIfAbsent(weekEntry.key, () => {})
                   .putIfAbsent(day, () => {})
-                  .putIfAbsent(name, () => 2);
+                  .putIfAbsent(name, () => defaultMinutes.toDouble());
         }
       }
     }
     winners.addAll(cache.entries
         .map((e) => MapEntry(
-            e.key,
-            e.value[0]?.entries
-                    .minBy((k) => CompareList([k.value, secondsCache[e.key]?[0]?[k.key] ?? 2 * 7]))
-                    ?.key ??
-                ""))
+              e.key,
+              e.value[0]?.entries
+                      .minBy(
+                        (k) => CompareList([
+                          k.value,
+                          secondsCache[e.key]?[0]?[k.key] ?? defaultMinutes * daysPerWeek,
+                        ]),
+                      )
+                      ?.key ??
+                  "",
+            ))
         .where((element) => element.key < DateTime.now().toUtc().reidleWeek)
         .sorted((t) => -t.key));
   }
+
+  static get forfeitPlace => maxPlaces + 1;
 }
 
 class Submissions {

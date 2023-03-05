@@ -8,6 +8,7 @@ extension Stopwatch on Duration {
 }
 
 extension IE<T> on Iterable<T> {
+  T? get sample => (toList()..shuffle()).firstOrNull;
   T? minBy(Comparable Function(T value) test) {
     if (isEmpty) {
       return null;

@@ -9,7 +9,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
-import 'package:reidle/chat.dart';
+import 'package:reidle/chat_widget.dart';
 import 'package:reidle/choose_word.dart';
 import 'package:reidle/extensions.dart';
 import 'package:reidle/recorder.dart';
@@ -199,6 +199,7 @@ void main() async {
   runApp(
     MultiProvider(
       providers: [
+        ChangeNotifierProvider.value(value: burk),
         StreamProvider<Submissions>.value(
             value: db.submissionsStream, initialData: Submissions([])),
         StreamProvider<User?>.value(
@@ -480,6 +481,16 @@ class GameFloatingActionButton extends StatelessWidget {
   }
 }
 
+class BurkhardFilter with ChangeNotifier {
+  bool active = false;
+  void setActive(bool active) {
+    this.active = active;
+    notifyListeners();
+  }
+}
+
+final burk = BurkhardFilter();
+
 class UndoButton extends StatelessWidget {
   const UndoButton({Key? key}) : super(key: key);
 
@@ -553,6 +564,11 @@ class ReidleDrawer extends StatelessWidget {
           title: const Text('Rules'),
           onTap: () => launchUrl(Uri.parse("https://shorturl.at/ltEHX")),
         ),
+        CheckboxListTile(
+          title: Row(children: const [Icon(Icons.woman), Text("Burkhard Filter")]),
+          onChanged: (value) => context.read<BurkhardFilter>().setActive(value ?? false),
+          value: context.watch<BurkhardFilter>().active,
+        )
       ]).toList());
     }));
   }
@@ -749,6 +765,7 @@ class ThisWeekDataTable extends StatelessWidget {
                   .putIfAbsent(t.key, () => 2)
             ])) ??
         [];
+    final burk = context.watch<BurkhardFilter>().active;
     return DataTable(
         columnSpacing: 0,
         horizontalMargin: 10,
@@ -758,6 +775,7 @@ class ThisWeekDataTable extends StatelessWidget {
           ..."MTWRFSU".characters.take(days).map((e) => DataColumn(label: Text(e), numeric: true)),
         ],
         rows: players
+            .where((s) => !burk || !{'tracy', 'natnat'}.contains(s.key.toLowerCase()))
             .map(
               (t) => DataRow(cells: [
                 DataCell(Text(t.key.substring(0, t.key.length.min(10)))),
@@ -793,6 +811,7 @@ class PreviousDataTable extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final weekCache = Provider.of<Submissions>(context).weekCache;
+    final burk = context.watch<BurkhardFilter>().active;
     return DataTable(
         columns: [
           'week',
@@ -800,6 +819,7 @@ class PreviousDataTable extends StatelessWidget {
           'score',
         ].map((s) => DataColumn(label: Text(s))).toList(),
         rows: weekCache.winners
+            .where((s) => !burk || !{'tracy', 'natnat'}.contains(s.value.toLowerCase()))
             .map((e) => DataRow(
                 color: e.value.isMyName ? MaterialStateProperty.all(Colors.yellow.shade200) : null,
                 cells: [e.key, e.value, weekCache.cache[e.key]?[0]?[e.value]]
@@ -818,6 +838,7 @@ class HistoryDataTable extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final provider = Provider.of<Submissions>(context);
+    final burk = context.watch<BurkhardFilter>().active;
     return DataTable(
         columnSpacing: 20,
         columns: [
@@ -830,6 +851,7 @@ class HistoryDataTable extends StatelessWidget {
         ].map((s) => DataColumn(label: Text(s))).toList(),
         rows: provider.submissions
             .take(30)
+            .where((s) => !burk || !{'tracy', 'natnat'}.contains(s.submission.name.toLowerCase()))
             .where((s) => s.submission.submissionTime.isAfter(frontPage
                 ? DateTime.now().startOfDay
                 : DateTime.now().subtract(const Duration(days: 40))))
@@ -899,12 +921,15 @@ class PreviousWeekWinnerCalloutWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final thisWeeksWinnersName = Provider.of<Submissions>(context)
-            .weekCache
-            .winners
-            .find((value) => value.key == DateTime.now().toUtc().reidleWeek - 1)
-            ?.value ??
-        "None";
+    final thisWeeksWinnersName = context.watch<BurkhardFilter>().active
+        ? {"Michael Jordan", "Lady Gaga", "Wiz Khalifa", "Sakis", "Jon Bon Jovi", "Uncle Jesse"}
+            .sample!
+        : Provider.of<Submissions>(context)
+                .weekCache
+                .winners
+                .find((value) => value.key == DateTime.now().toUtc().reidleWeek - 1)
+                ?.value ??
+            "None";
     return Padding(
       padding: const EdgeInsets.all(8.0),
       child: Card(

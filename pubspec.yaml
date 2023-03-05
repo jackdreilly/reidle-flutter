@@ -29,6 +29,7 @@ dev_dependencies:
   flutter_lints: ^2.0.0
   build_runner: ^2.1.11
   freezed: ^2.0.3+1
+  dart_code_metrics: ^5.6.0
 flutter:
   uses-material-design: true
   assets:
