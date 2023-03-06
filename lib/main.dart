@@ -928,9 +928,11 @@ class PreviousWeekWinnerCalloutWidget extends StatelessWidget {
             .where((element) => !burk || !{'tracy', 'natnat'}.contains(element.value.toLowerCase()))
             .find((value) => value.key == DateTime.now().toUtc().reidleWeek - 1)
             ?.value ??
-        {"Michael Jordan", "Lady Gaga", "Wiz Khalifa", "Sakis", "Jon Bon Jovi", "Uncle Jesse"}
-            .sample ??
-        "None";
+        (burk
+            ? {"Michael Jordan", "Lady Gaga", "Wiz Khalifa", "Sakis", "Jon Bon Jovi", "Uncle Jesse"}
+                    .sample ??
+                "..."
+            : "...");
     return Padding(
       padding: const EdgeInsets.all(8.0),
       child: Card(
