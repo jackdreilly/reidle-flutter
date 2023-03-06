@@ -921,15 +921,16 @@ class PreviousWeekWinnerCalloutWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final thisWeeksWinnersName = context.watch<BurkhardFilter>().active
-        ? {"Michael Jordan", "Lady Gaga", "Wiz Khalifa", "Sakis", "Jon Bon Jovi", "Uncle Jesse"}
-            .sample!
-        : Provider.of<Submissions>(context)
-                .weekCache
-                .winners
-                .find((value) => value.key == DateTime.now().toUtc().reidleWeek - 1)
-                ?.value ??
-            "None";
+    final burk = context.watch<BurkhardFilter>().active;
+    final thisWeeksWinnersName = Provider.of<Submissions>(context)
+            .weekCache
+            .winners
+            .where((element) => !burk || !{'tracy', 'natnat'}.contains(element.value.toLowerCase()))
+            .find((value) => value.key == DateTime.now().toUtc().reidleWeek - 1)
+            ?.value ??
+        {"Michael Jordan", "Lady Gaga", "Wiz Khalifa", "Sakis", "Jon Bon Jovi", "Uncle Jesse"}
+            .sample ??
+        "None";
     return Padding(
       padding: const EdgeInsets.all(8.0),
       child: Card(
