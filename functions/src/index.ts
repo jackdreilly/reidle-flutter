@@ -25,8 +25,15 @@ export const onNewSubmission = firebase
     let seconds = time / 1e6;
     const minutes = Math.floor(seconds / 60);
     seconds -= minutes * 60;
+    const fullSeconds = Math.floor(seconds + 1e-5);
+    const milliseconds = Math.floor(
+      Math.abs((seconds - fullSeconds) % 1) * 1000);
     const lost = (error?.length ?? 0) > 0;
-    const text = `${name}: ${minutes}:${seconds}${lost ? " (lost)" : ""}`;
+    const secondsString = fullSeconds.toString().padStart(2, "0");
+    const millisString = milliseconds.toString().padStart(3, "0");
+    const timeString = `${minutes}:${secondsString}.${millisString}`;
+    const lostString = lost ? " (lost)" : "";
+    const text = `${name}: ${timeString}${lostString}`;
     await sendgrid.send({
       to,
       from: {name, email},

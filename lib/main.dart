@@ -564,6 +564,11 @@ class ReidleDrawer extends StatelessWidget {
           title: const Text('Rules'),
           onTap: () => launchUrl(Uri.parse("https://shorturl.at/ltEHX")),
         ),
+        ListTile(
+          leading: const Icon(Icons.whatshot),
+          title: const Text('Alpha'),
+          onTap: () => launchUrl(Uri.parse("https://reidle.deno.dev/practice")),
+        ),
         CheckboxListTile(
           title: Row(children: const [Icon(Icons.woman), Text("Berkhart Filter")]),
           onChanged: (value) => context.read<BurkhardFilter>().setActive(value ?? false),
