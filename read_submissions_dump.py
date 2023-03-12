@@ -15,9 +15,7 @@ client: firestore.Client = firebase_admin.firestore.client()
 
 
 def connect():
-    return psycopg2.connect(
-        "postgres://postgres:q3zbKbcZzs6L5UG@db.kyxziusgsizkedxitbez.supabase.co:5432/postgres"
-    )
+    return psycopg2.connect()
 
 
 # %%

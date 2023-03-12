@@ -567,7 +567,7 @@ class ReidleDrawer extends StatelessWidget {
         ListTile(
           leading: const Icon(Icons.whatshot),
           title: const Text('Alpha'),
-          onTap: () => launchUrl(Uri.parse("https://reidle.deno.dev/practice")),
+          onTap: () => launchUrl(Uri.parse("https://reidle.deno.dev")),
         ),
         CheckboxListTile(
           title: Row(children: const [Icon(Icons.woman), Text("Berkhart Filter")]),
@@ -742,7 +742,7 @@ class PlaybackWidget extends StatelessWidget {
         initialData: PlaybackState.initial(submission),
         builder: (context, _) {
           final state = Provider.of<PlaybackState>(context);
-          final answer = submission.answer ?? dict.answerForDate(submission.submissionTime);
+          final answer = submission.answer ?? "dunno";
           return Card(
               color: scoreWordle(answer, state.guesses).won ? Colors.green.shade200 : state.color,
               child: Padding(
