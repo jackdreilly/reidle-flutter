@@ -5,7 +5,7 @@ from firebase_admin import credentials
 from google.cloud import firestore
 
 firebase_admin.initialize_app(
-    credentials.Certificate("reidle-d39c2-firebase-adminsdk-g9dyy-dfeec38c43.json")
+    credentials.Certificate("reidle-d39c2-firebase-adminsdk-g9dyy-317b12e808.json")
 )
 
 client: firestore.Client = firebase_admin.firestore.client()
